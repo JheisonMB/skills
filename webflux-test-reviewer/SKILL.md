@@ -54,11 +54,23 @@ Read all markdown files in `statement/`. This is your baseline — everything th
 
 ### 2. Evaluate All Candidates
 
-Process all candidates automatically. If sub-agents are available, use them to evaluate candidates in parallel — each candidate is independent so this is safe. Otherwise, evaluate sequentially.
+Process all candidates automatically. If sub-agents are available, use them to evaluate candidates in parallel with `dangerously_trust_all_tools: true` to avoid hanging on tool approvals — each candidate is independent so this is safe. Otherwise, evaluate sequentially.
 
 For each candidate:
 
-**Explore the codebase.** Read the project structure, source files, configuration, and infrastructure files. Get a complete picture before judging anything.
+**Explore the codebase selectively.** Don't read every file. Focus on these key files:
+- `README.md` — for readme evaluation
+- `build.gradle` / `pom.xml` — to identify framework, dependencies, and scaffold usage
+- `Dockerfile`, `docker-compose.yml` — for infra evaluation
+- IaC files (`*.tf`, `cloudformation.*`, etc.) — if they exist
+- `application.yml` / `application.properties` — for configuration and secrets check
+- Controllers/Entry points — to evaluate API design and reactive usage
+- Use cases / Services — to evaluate business logic, operators, and exception handling
+- Global exception handler — to evaluate error management
+- Test directory structure — to verify tests exist and estimate coverage (don't read every test file, check count and which layers are tested)
+- `.gitignore` — to check what's tracked
+
+Use directory listings and file structure to assess architecture without reading every class.
 
 **Check git history.** Run `git log --oneline` and `git branch -a` inside the candidate's directory. This reveals commit discipline, branch strategy, and work progression.
 
@@ -103,6 +115,16 @@ Write the report in each candidate's directory using this format:
 ```
 
 Write the report in the **same language as the statement**. Spanish statement → Spanish report. English statement → English report.
+
+**Writing style for evaluations:** Be concise and direct. State the verdict and the key finding, don't repeat the same idea with different words. Avoid filler phrases.
+
+Bad (redundant): `Existe pero es muy básico. Copia el JAR pre-compilado, no hace build multi-stage. Funcional pero no óptimo.`
+Good (concise): `Solo copia el JAR, no hace build multi-stage.`
+
+Bad (verbose): `Arquitectura por capas (controller, service, repository, model, dto, mapper). Usa interfaces para servicios y DTOs separados, lo cual es positivo. Sin embargo, es una estructura plana sin inversión de dependencias. No hay separación de dominio e infraestructura a nivel de módulo. No aplica Clean Architecture ni el scaffold de Bancolombia. El dominio (modelos JPA) está acoplado directamente a la infraestructura de persistencia. Arquitectura básica.`
+Good (concise): `Arquitectura por capas básica (controller-service-repository). Sin inversión de dependencias ni separación dominio/infraestructura. Modelos JPA acoplados a persistencia.`
+
+The rule: say it once, say it well, move on.
 
 ### 4. WebFlux Technical Reference
 
