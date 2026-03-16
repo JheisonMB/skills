@@ -1,6 +1,29 @@
 ---
 name: webflux-reactive-patterns
-description: Expert guidance for Java Spring WebFlux reactive programming. Enforces pure reactive flows, lazy error handling with Mono.defer(), proper use of flatMap/map/filter, parallel operations with Mono.zip(), and elimination of imperative patterns. Use when developing reactive Java applications with WebFlux, handling Mono/Flux streams, refactoring imperative code to reactive style, reviewing reactive code for anti-patterns, debugging reactive issues (streams not executing, blocking calls, memory leaks), implementing error handling strategies, optimizing reactive performance, or converting blocking code to non-blocking. Always use this skill when you see Mono, Flux, WebFlux, reactive streams, or Project Reactor mentioned, even if the user doesn't explicitly ask for reactive patterns guidance.
+description: >
+  Expert guidance for Java Spring WebFlux reactive programming. Enforces pure reactive flows, lazy error handling with Mono.defer(), proper use of flatMap/map/filter, parallel operations with Mono.zip(), and elimination of imperative patterns.
+  
+  Use this skill when:
+  - Developing reactive Java applications with WebFlux
+  - Handling Mono/Flux streams
+  - Refactoring imperative code to reactive style
+  - Reviewing reactive code for anti-patterns
+  - Debugging reactive issues (streams not executing, blocking calls, memory leaks)
+  - Implementing error handling strategies
+  - Optimizing reactive performance
+  - Converting blocking code to non-blocking
+  
+  ACTIVATE when the user mentions:
+  "Mono", "Flux", "flatMap", "switchIfEmpty", "Mono.zip", "Mono.defer",
+  "WebFlux", "reactive", "reactivo", "cadena reactiva", "operadores reactor",
+  "block()", "StepVerifier", "onErrorResume", "filter reactivo",
+  "pipeline reactivo", "WebClient", "R2DBC", "spring-webflux",
+  "programación reactiva Java", "reactive streams",
+  questions like "cómo hago X sin bloquear", "cómo manejo el error en reactivo",
+  "cómo corro en paralelo con Mono", "cómo evito el block".
+
+  DO NOT USE for: Spring MVC bloqueante, RestTemplate, JdbcTemplate,
+  código imperativo sin contexto reactivo.
 license: MIT
 metadata:
   author: jheison.martinez
@@ -134,14 +157,9 @@ All errors must be lazy to maintain reactive semantics. Never use `throw` direct
 - Enables retry and fallback strategies
 - Maintains backpressure semantics
 
-## Future Enhancements
 
-This skill will be enhanced with validation scripts to automatically detect:
-- Imperative patterns in reactive code
-- Missing `Mono.defer()` in error handling
-- Literal values that should be constants
-- Opportunities for parallel execution
+## Quick Troubleshooting
 
-## Contributing
+For common reactive programming issues and solutions, refer to the [Troubleshooting Guide](references/TROUBLESHOOTING.md).
 
-To extend this skill with additional patterns or examples, maintain the workflow-based organization and ensure all code examples are minimal and focused on demonstrating specific patterns.
+If you need to extend this skill with additional patterns or examples, please maintain the workflow-based organization and ensure all code examples are minimal and focused on demonstrating specific patterns.
