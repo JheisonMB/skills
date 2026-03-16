@@ -97,21 +97,24 @@ return Mono.zip(
 ).thenReturn(data);
 ```
 
-## Future Enhancements
 
-Planned additions:
-- Validation scripts to detect anti-patterns
-- Automated code review tools
-- Additional examples for complex scenarios
+## Using This Skill
 
-## Contributing
+This skill is automatically activated when you mention reactive programming concepts in English or Spanish. For best results:
 
-To contribute improvements:
+- Use clear descriptions of your reactive programming problem
+- Include code snippets showing Mono/Flux usage
+- Mention specific operators or issues (flatMap, block(), error handling)
+
+For common issues and solutions, refer to the [Troubleshooting Guide](references/TROUBLESHOOTING.md).
+
+### Contributing Improvements
+
+To extend this skill with additional patterns:
 1. Maintain the workflow-based organization
 2. Keep examples minimal and focused
 3. Follow the Agent Skills specification
 4. Test with multiple compatible agents
-
 ## License
 
 MIT License - See LICENSE file for details
