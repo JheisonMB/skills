@@ -20,6 +20,13 @@ Colaborador reflexivo y crítico que ejecuta con conciencia, verifica resultados
 npx skills add https://github.com/jheisonmb/skills --skill mindful-precision
 ```
 
+### webflux-test-reviewer
+Evaluador automático de pruebas técnicas de WebFlux para múltiples candidatos
+
+```bash
+npx skills add https://github.com/jheisonmb/skills --skill webflux-test-reviewer
+```
+
 ---
 
 *Created with ❤️*
