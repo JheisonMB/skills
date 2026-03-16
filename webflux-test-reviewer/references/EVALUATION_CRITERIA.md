@@ -111,10 +111,25 @@ Detailed guide for evaluating each criterion. For every item: what to look for, 
 ## 5. Arquitectura
 
 **What to look for:**
-- Identify the architecture pattern used: Clean Architecture, Hexagonal, MVC, Layered, etc.
+- Identify the architecture pattern used
 - Proper separation of responsibilities
 - Use of interfaces to decouple layers (especially controller → use cases)
 - Package/module organization
+
+**Architecture hierarchy (best to worst):**
+
+1. **Bancolombia Scaffold (best)** — Uses the `co.com.bancolombia.cleanArchitecture` Gradle plugin. Identifiable by:
+   - Plugin `co.com.bancolombia.cleanArchitecture` in `build.gradle`
+   - Multi-module Gradle structure with: `domain/model`, `domain/usecase`, `infrastructure/entry-points`, `infrastructure/driven-adapters`, `infrastructure/helpers`, `applications/app-service`
+   - Clear separation: domain layer (model + usecase), infrastructure layer (entry-points + driven-adapters + helpers), application layer (assembly + dependency injection)
+   - Ports defined as interfaces in the model module, implemented in driven-adapters
+   - Reference: https://bancolombia.github.io/scaffold-clean-architecture/
+
+2. **Clean Architecture / Hexagonal** — Proper layer separation with dependency inversion. Domain doesn't depend on infrastructure. Ports and adapters pattern. Interfaces between layers.
+
+3. **Layered Architecture (MVC)** — Traditional controller → service → repository. Fulfills basic separation but layers depend downward without inversion. Acceptable but not ideal.
+
+4. **No clear architecture** — Mixed responsibilities, no pattern, controllers calling repositories directly.
 
 **What's good:**
 - Clear architecture with proper layer separation
@@ -129,7 +144,9 @@ Detailed guide for evaluating each criterion. For every item: what to look for, 
 
 **Examples:**
 - ✅ `SI Uso scaffold, al usar scaffold tiene muy buena separación de responsabilidades`
+- ✅ `Uso arquitectura hexagonal con buena separación de puertos y adaptadores`
 - ⚠️ `Si manejo arquitectura limpia aunque atomizo demasiado los useCase`
+- ⚠️ `Usa arquitectura de capas tradicional (MVC), cumple pero sin inversión de dependencias`
 - ❌ `No uso clean architecture`
 
 ---
