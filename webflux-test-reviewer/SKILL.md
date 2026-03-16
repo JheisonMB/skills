@@ -118,6 +118,16 @@ When evaluating reactive code quality, reference the **webflux-reactive-patterns
 
 For detailed criteria with examples of good and bad evaluations, read [references/EVALUATION_CRITERIA.md](references/EVALUATION_CRITERIA.md). Consult it when you need guidance on what specifically to look for in each criterion.
 
+## Setup Script
+
+To quickly create the candidate directory structure from GitHub URLs, run [scripts/setup_candidates.sh](scripts/setup_candidates.sh):
+
+```bash
+./scripts/setup_candidates.sh https://github.com/user1/repo https://github.com/user2/repo
+```
+
+This creates a directory per GitHub user and clones their repo inside it. After running, add a `statement/` directory with the assessment markdown.
+
 ## Report Template
 
 The exact template with placeholders is at [assets/EVALUATION_TEMPLATE.md](assets/EVALUATION_TEMPLATE.md).
