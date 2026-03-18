@@ -1,6 +1,7 @@
 #!/bin/bash
 # Create and load launchd plist for macOS
-# Usage: ./add-to-launchd.sh --task-id <id> --hour <hour> --minute <minute> --command <command> [--dry-run]
+# Usage: ./add-to-launchd.sh --task-id <id> --hour <H> --minute <M> --command <cmd> [--interval <secs>] [--working-dir <path>] [--dry-run]
+# Note: --hour/--minute and --interval are mutually exclusive
 
 set -e
 
@@ -8,22 +9,38 @@ TASK_ID=""
 HOUR=""
 MINUTE=""
 COMMAND=""
+INTERVAL=""
+WORKING_DIR="$HOME"
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --task-id)  TASK_ID="$2";  shift 2 ;;
-    --hour)     HOUR="$2";     shift 2 ;;
-    --minute)   MINUTE="$2";   shift 2 ;;
-    --command)  COMMAND="$2";  shift 2 ;;
-    --dry-run)  DRY_RUN=true;  shift ;;
+    --task-id)      TASK_ID="$2";      shift 2 ;;
+    --hour)         HOUR="$2";         shift 2 ;;
+    --minute)       MINUTE="$2";       shift 2 ;;
+    --command)      COMMAND="$2";      shift 2 ;;
+    --interval)     INTERVAL="$2";     shift 2 ;;
+    --working-dir)  WORKING_DIR="$2";  shift 2 ;;
+    --dry-run)      DRY_RUN=true;      shift ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
 
-if [[ -z "$TASK_ID" || -z "$HOUR" || -z "$MINUTE" || -z "$COMMAND" ]]; then
-  echo "Error: Missing required arguments"
-  echo "Usage: $0 --task-id <id> --hour <hour> --minute <minute> --command <command>"
+# Validate required args
+if [[ -z "$TASK_ID" || -z "$COMMAND" ]]; then
+  echo "Error: --task-id and --command are required"
+  echo "Usage: $0 --task-id <id> (--hour <H> --minute <M> | --interval <secs>) --command <cmd> [--working-dir <path>] [--dry-run]"
+  exit 1
+fi
+
+# Validate mutually exclusive scheduling
+if [[ -n "$INTERVAL" && (-n "$HOUR" || -n "$MINUTE") ]]; then
+  echo "Error: --interval and --hour/--minute are mutually exclusive"
+  exit 1
+fi
+
+if [[ -z "$INTERVAL" && (-z "$HOUR" || -z "$MINUTE") ]]; then
+  echo "Error: Either --interval or both --hour and --minute are required"
   exit 1
 fi
 
@@ -35,8 +52,20 @@ PLIST_FILE="$LAUNCHD_DIR/com.task-trigger.$TASK_ID.plist"
 LOG_FILE="$HOME/.task-trigger/logs/$TASK_ID.log"
 ERROR_LOG="$HOME/.task-trigger/logs/$TASK_ID.error.log"
 
-# Bug 3: Capture current user PATH for launchd
-USER_PATH=$(echo "$PATH")
+# Mejora 8: PATH limpio con solo directorios esenciales
+CLEAN_PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# Build schedule section
+if [[ -n "$INTERVAL" ]]; then
+  SCHEDULE_SECTION="  <key>StartInterval</key>
+  <integer>$INTERVAL</integer>"
+else
+  SCHEDULE_SECTION="  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>$HOUR</integer>
+    <key>Minute</key><integer>$MINUTE</integer>
+  </dict>"
+fi
 
 PLIST_CONTENT="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
@@ -50,21 +79,17 @@ PLIST_CONTENT="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <string>-c</string>
     <string>$COMMAND</string>
   </array>
-  <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key><integer>$HOUR</integer>
-    <key>Minute</key><integer>$MINUTE</integer>
-  </dict>
+$SCHEDULE_SECTION
   <key>StandardOutPath</key>
   <string>$LOG_FILE</string>
   <key>StandardErrorPath</key>
   <string>$ERROR_LOG</string>
   <key>WorkingDirectory</key>
-  <string>$HOME</string>
+  <string>$WORKING_DIR</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>$USER_PATH</string>
+    <string>$CLEAN_PATH</string>
     <key>HOME</key>
     <string>$HOME</string>
   </dict>

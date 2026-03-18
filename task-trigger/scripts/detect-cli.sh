@@ -4,10 +4,10 @@
 
 set -e
 
-if which opencode >/dev/null 2>&1; then
-  which opencode
-elif which kiro-cli >/dev/null 2>&1; then
-  which kiro-cli
+if command -v opencode >/dev/null 2>&1; then
+  command -v opencode
+elif command -v kiro-cli >/dev/null 2>&1; then
+  command -v kiro-cli
 else
   echo "none"
   exit 1
