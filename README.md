@@ -27,6 +27,13 @@ Evaluador automático de pruebas técnicas de WebFlux para múltiples candidatos
 npx skills add https://github.com/jheisonmb/skills --skill webflux-test-reviewer
 ```
 
+### task-trigger
+Programación de tareas recurrentes usando scheduler nativo del SO (crontab/launchd) con scripts automatizados
+
+```bash
+npx skills add https://github.com/jheisonmb/skills --skill task-trigger
+```
+
 ---
 
 *Created with ❤️*
