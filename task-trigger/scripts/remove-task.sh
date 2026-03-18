@@ -1,38 +1,49 @@
 #!/bin/bash
 # Remove a scheduled task
-# Usage: ./remove-task.sh <task-id>
+# Usage: ./remove-task.sh <task-id> [--force]
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 TASK_ID="$1"
+FORCE=false
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --force|--no-confirm) FORCE=true; shift ;;
+    *) if [[ -z "$TASK_ID" || "$TASK_ID" == "--"* ]]; then TASK_ID="$1"; fi; shift ;;
+  esac
+done
+
 if [[ -z "$TASK_ID" ]]; then
-  echo "Usage: $0 <task-id>"
+  echo "Usage: $0 <task-id> [--force]"
   exit 1
 fi
 
 TASKS_FILE="$HOME/.task-trigger/tasks.json"
 
-# Check if tasks file exists
 if [[ ! -f "$TASKS_FILE" ]]; then
   echo "No tasks registered yet."
   exit 0
 fi
 
-# Check if task exists
 if ! grep -q "\"id\": \"$TASK_ID\"" "$TASKS_FILE" 2>/dev/null; then
   echo "Task '$TASK_ID' not found."
   exit 1
 fi
 
 echo "Removing task: $TASK_ID"
-echo "This will:"
-echo "1. Remove from tasks.json"
-echo "2. Remove from crontab (Linux/WSL) or launchd (macOS)"
-echo ""
-echo "Press Enter to continue or Ctrl+C to cancel..."
-read -r
+
+if [[ "$FORCE" != true ]]; then
+  echo "This will:"
+  echo "1. Remove from tasks.json"
+  echo "2. Remove from crontab (Linux/WSL) or launchd (macOS)"
+  echo ""
+  echo "Press Enter to continue or Ctrl+C to cancel..."
+  read -r
+fi
 
 # Detect platform
 PLATFORM=$("$SCRIPT_DIR/detect-platform.sh")

@@ -4,9 +4,28 @@
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 TASKS_FILE = os.path.expanduser("~/.task-trigger/tasks.json")
+
+
+def get_status(task):
+    """Determine task status, checking expiration."""
+    if not task.get("enabled", True):
+        return "Disabled"
+
+    expires_at = task.get("trigger", {}).get("expires_at")
+    if expires_at:
+        try:
+            exp_time = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) > exp_time:
+                # Opportunistic cleanup: mark as disabled
+                task["enabled"] = False
+                return "Expired"
+        except Exception:
+            pass
+
+    return "Enabled"
 
 
 def main():
@@ -25,6 +44,7 @@ def main():
         print(f"{'ID':<30} {'Name':<25} {'Schedule':<15} {'Status':<10} {'CLI':<10}")
         print("-" * 90)
 
+        dirty = False
         for task in tasks:
             task_id = task.get("id", "unknown")
             name = (
@@ -33,12 +53,20 @@ def main():
                 else task.get("name", "Unnamed")
             )
             cron = task.get("trigger", {}).get("expression", "N/A")
-            enabled = "Enabled" if task.get("enabled", True) else "Disabled"
+            status = get_status(task)
+            if status == "Expired":
+                dirty = True
             agent = task.get("execution", {}).get("agent", "unknown")
 
-            print(f"{task_id:<30} {name:<25} {cron:<15} {enabled:<10} {agent:<10}")
+            print(f"{task_id:<30} {name:<25} {cron:<15} {status:<10} {agent:<10}")
 
         print(f"\nTotal tasks: {len(tasks)}")
+
+        # Opportunistic save if any expired tasks were marked disabled
+        if dirty:
+            with open(TASKS_FILE, "w") as f:
+                json.dump(tasks, f, indent=2)
+
         return 0
 
     except json.JSONDecodeError as e:
