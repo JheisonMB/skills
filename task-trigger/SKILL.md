@@ -22,12 +22,13 @@ description: >
 license: MIT
 metadata:
     author: jheison.martinez
-    version: "1.1"
+    version: "2.0"
     platforms: Linux/WSL/macOS
     compatible_with: opencode, kiro
     category: automation
     last_updated: "2026-03-18"
     includes_scripts: true
+    features: ["cron scheduling", "file monitoring", "cross-platform"]
 ---
 
 # Task Trigger Skill
@@ -50,8 +51,11 @@ user: "every day at 9am summarize my memory MCP entries"
 | Command | Description |
 |---|---|
 | `/task-trigger:add` | Register a new task interactively (ALWAYS ask confirmation) |
+| `/task-trigger:watch` | Start monitoring a file/directory for changes |
 | `/task-trigger:list` | Show all registered tasks |
+| `/task-trigger:watchers` | List active file watchers |
 | `/task-trigger:remove <id>` | Remove a task + clean scheduler |
+| `/task-trigger:unwatch <id>` | Stop monitoring a file/directory |
 | `/task-trigger:logs [id]` | View execution history |
 | `/task-trigger:run <id>` | Execute task immediately |
 | `/task-trigger:status` | Check scheduler health + time remaining |
@@ -66,7 +70,11 @@ This skill includes pre-built scripts for common operations. Use them to ensure 
 | `detect-cli.sh` | Detect available CLI | `./scripts/detect-cli.sh` → outputs: `opencode`, `kiro`, or `none` |
 | `add-to-crontab.sh` | Add task to crontab | `./scripts/add-to-crontab.sh --task-id <id> --cron <expr> --command <cmd>` |
 | `add-to-launchd.sh` | Add task to launchd | `./scripts/add-to-launchd.sh --task-id <id> --hour <H> --minute <M> --command <cmd>` |
+| `detect-watcher.sh` | Detect file monitoring tools | `./scripts/detect-watcher.sh` → outputs: `inotifywait`, `fswatch`, `polling`, or `none` |
+| `start-watcher.sh` | Start file/directory watcher | `./scripts/start-watcher.sh --task-id <id> --path <path> --events <events> --command <cmd>` |
+| `stop-watcher.sh` | Stop file watcher | `./scripts/stop-watcher.sh <task-id>` |
 | `list-tasks.py` | List registered tasks | `./scripts/list-tasks.py` |
+| `list-watchers.py` | List active file watchers | `./scripts/list-watchers.py` |
 | `remove-task.sh` | Remove task completely | `./scripts/remove-task.sh <task-id>` |
 | `view-logs.sh` | View task logs | `./scripts/view-logs.sh [task-id] [--tail] [--lines N]` |
 | `run-task.sh` | Execute task now | `./scripts/run-task.sh <task-id>` |
@@ -125,6 +133,7 @@ Rules: lowercase, hyphens, based on description.
 ### Step 3: Create Task JSON
 Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist):
 
+#### For cron-based tasks:
 ```json
 {
   "id": "daily-memory-summary",
@@ -146,6 +155,32 @@ Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist):
   },
   "created_at": "2026-03-18T10:00:00Z",
   "log_path": "$HOME/.task-trigger/logs/daily-memory-summary.log"
+}
+```
+
+#### For file watcher tasks:
+```json
+{
+  "id": "log-file-watcher",
+  "name": "Log File Watcher",
+  "enabled": true,
+  "trigger": {
+    "type": "file",
+    "path": "/var/log/myapp.log",
+    "watch_events": ["create", "modify"],
+    "recursive": false,
+    "poll_interval": 5,
+    "debounce": 1
+  },
+  "execution": {
+    "agent": "opencode",
+    "model": "deepseek/deepseek-chat",
+    "prompt": "New log entry detected. Analyze the latest lines and notify if errors found. Write output to $HOME/.task-trigger/logs/log-analyzer.log",
+    "workingDirectory": "$HOME",
+    "timeout": 60
+  },
+  "created_at": "2026-03-18T10:00:00Z",
+  "log_path": "$HOME/.task-trigger/logs/log-analyzer.log"
 }
 ```
 
@@ -198,6 +233,7 @@ fi
 ```bash
 mkdir -p $HOME/.task-trigger/logs
 mkdir -p $HOME/.task-trigger/launchd  # macOS only
+mkdir -p $HOME/.task-trigger/watchers  # For file watchers
 ```
 
 ### Step 6: Confirm to User
@@ -209,6 +245,59 @@ Show summary:
 - Logs: `$HOME/.task-trigger/logs/daily-memory-summary.log`
 - Platform: WSL/macOS/Linux
 - Status: Enabled
+
+## File Watcher Workflow
+
+### Step 1: Parse User Request
+```
+User: "watch my log file at /var/log/app.log and analyze new entries"
+→ You extract:
+   - Path: "/var/log/app.log"
+   - Events: ["modify"] (default for files)
+   - Prompt: "analyze new log entries"
+   - CLI: detect opencode/kiro
+```
+
+### Step 2: Generate Task ID
+Create unique ID: `log-file-watcher`, `config-monitor`, etc.
+
+### Step 3: Create Task JSON (File Trigger)
+Use the file trigger format shown in Step 3.
+
+### Step 4: Start Watcher
+```bash
+# Detect CLI first
+CLI=$(./scripts/detect-cli.sh)
+
+# Build command based on CLI
+if [[ "$CLI" == "opencode" ]]; then
+  COMMAND="opencode run --prompt 'New log entry detected. Analyze the latest lines and notify if errors found. Write output to \$HOME/.task-trigger/logs/log-analyzer.log'"
+elif [[ "$CLI" == "kiro" ]]; then
+  COMMAND="kiro-cli chat --no-interactive 'New log entry detected. Analyze the latest lines and notify if errors found. Write output to \$HOME/.task-trigger/logs/log-analyzer.log'"
+fi
+
+# Detect available watcher tool
+WATCHER_TOOL=$(./scripts/detect-watcher.sh)
+
+# Start the watcher
+./scripts/start-watcher.sh \
+  --task-id "log-file-watcher" \
+  --path "/var/log/app.log" \
+  --events "modify" \
+  --command "$COMMAND" \
+  --recursive false \
+  --poll-interval 5 \
+  --debounce 1
+```
+
+### Step 5: Confirm to User
+Show summary:
+- Task ID: `log-file-watcher`
+- Path: `/var/log/app.log`
+- Events: `modify`
+- Tool: `inotifywait` (or detected tool)
+- CLI: `opencode` / `kiro`
+- Status: Watching
 
 ## Special Cases
 
@@ -232,6 +321,12 @@ User: "using opencode/zen" or "con claude-3.5-sonnet"
 ### Working Directory
 Always use `$HOME` (not `~`) in scheduled commands.
 
+### File Watcher Events
+Available events: `create`, `modify`, `delete`, `move`
+- **Files**: Use `modify` for content changes
+- **Directories**: Use `create`, `delete`, `move` for structure changes
+- **Default**: `modify` for files, `create,modify,delete` for directories
+
 ## Task Management
 
 ### Listing Tasks (`/task-trigger:list`)
@@ -240,10 +335,22 @@ Use the script instead of manual JSON parsing:
 ./scripts/list-tasks.py
 ```
 
+### Listing Watchers (`/task-trigger:watchers`)
+List active file watchers:
+```bash
+./scripts/list-watchers.py
+```
+
 ### Removing Tasks (`/task-trigger:remove <id>`)
 Use the script instead of manual removal:
 ```bash
 ./scripts/remove-task.sh <task-id>
+```
+
+### Stopping Watchers (`/task-trigger:unwatch <id>`)
+Stop a file watcher:
+```bash
+./scripts/stop-watcher.sh <task-id>
 ```
 
 ### Viewing Logs (`/task-trigger:logs [id]`)
@@ -293,12 +400,14 @@ Use the script instead of manual execution:
 2. **Use scripts for detection** instead of manual bash code
 3. **Parse natural language** into cron expressions (agent's strength)
 4. **Handle temporal tasks** with duration/expiration
-5. **Create necessary directories** (`$HOME/.task-trigger/`, `logs/`, `launchd/`)
+5. **Create necessary directories** (`$HOME/.task-trigger/`, `logs/`, `launchd/`, `watchers/`)
 6. **Use structured logs** with timestamps
 7. **Include model flag** ONLY if user explicitly mentions model
 8. **Use $HOME, not ~** in scheduled commands and paths
 9. **Verify CLI commands** with `--help` when uncertain
 10. **Prefer scripts over manual operations** for consistency
+11. **Detect available watcher tool** before starting file monitoring
+12. **Set appropriate debounce** for file watchers (1-5 seconds)
 
 ### NEVER:
 1. Use `--dangerously-skip-permissions`
@@ -329,5 +438,10 @@ Test these cases:
 3. `every minute during the next 30 minutes check emails`
 4. `cada minuto durante la próxima hora revisa sistema`
 5. `Monday and Wednesday at 8:30am backup files`
+6. `watch my log file at /var/log/app.log and alert on errors`
+7. `monitor the downloads folder for new PDF files`
+8. `if config.json changes, restart the service`
+9. `when new files appear in /data/uploads, process them`
+10. `track changes to source code and run tests`
 
 Remember: You are the agent implementing this. Follow these instructions precisely, parse natural language, detect environment, and always confirm before making changes.
