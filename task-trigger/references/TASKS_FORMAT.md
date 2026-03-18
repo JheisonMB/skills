@@ -180,15 +180,11 @@
 The main file `~/.task-trigger/tasks.json` contains an array of tasks:
 
 ```json
-{
-  "version": "1.0",
-  "created_at": "2026-03-18T10:00:00Z",
-  "tasks": [
-    { /* task 1 */ },
-    { /* task 2 */ },
-    { /* task 3 */ }
-  ]
-}
+[
+  { /* task 1 */ },
+  { /* task 2 */ },
+  { /* task 3 */ }
+]
 ```
 
 ## Notes

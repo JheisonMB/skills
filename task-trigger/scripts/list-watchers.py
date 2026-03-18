@@ -8,6 +8,7 @@ import subprocess
 
 TASKS_FILE = os.path.expanduser("~/.task-trigger/tasks.json")
 WATCHERS_DIR = os.path.expanduser("~/.task-trigger/watchers")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def check_watcher_status(task_id, platform):
@@ -70,8 +71,7 @@ def main():
             # Detect platform
             try:
                 result = subprocess.run(
-                    ["./detect-platform.sh"],
-                    cwd=os.path.dirname(os.path.abspath(__file__)),
+                    [os.path.join(SCRIPT_DIR, "detect-platform.sh")],
                     capture_output=True,
                     text=True,
                 )
@@ -90,8 +90,7 @@ def main():
         print("\nAvailable monitoring tools:")
         try:
             result = subprocess.run(
-                ["./detect-watcher.sh"],
-                cwd=os.path.dirname(os.path.abspath(__file__)),
+                [os.path.join(SCRIPT_DIR, "detect-watcher.sh")],
                 capture_output=True,
                 text=True,
             )

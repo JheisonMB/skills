@@ -4,7 +4,7 @@
 
 set -e
 
-# Parse arguments
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TASK_ID=""
 WATCH_PATH=""
 WATCH_EVENTS=""
@@ -62,7 +62,7 @@ WATCHERS_DIR="$HOME/.task-trigger/watchers"
 mkdir -p "$WATCHERS_DIR"
 
 # Detect available watcher tool
-WATCHER_TOOL=$(./detect-watcher.sh)
+WATCHER_TOOL=$("$SCRIPT_DIR/detect-watcher.sh")
 
 # Create watcher script based on tool
 WATCHER_SCRIPT="$WATCHERS_DIR/$TASK_ID.sh"
@@ -83,116 +83,140 @@ case "$WATCHER_TOOL" in
     done
     INOTIFY_EVENTS="${INOTIFY_EVENTS%,}"
     
+    cat > "$WATCHER_SCRIPT" << 'WATCHER_EOF'
+#!/bin/bash
+set -e
+
+LAST_RUN_FILE=$(mktemp)
+echo 0 > "$LAST_RUN_FILE"
+trap "rm -f $LAST_RUN_FILE" EXIT
+
+inotifywait RECURSIVE_FLAG_PLACEHOLDER -m -e "INOTIFY_EVENTS_PLACEHOLDER" --format '%w%f %e' "WATCH_PATH_PLACEHOLDER" | while read FILE EVENT
+do
+  CURRENT_TIME=$(date +%s)
+  LAST_RUN=$(cat "$LAST_RUN_FILE")
+  if [[ $((CURRENT_TIME - LAST_RUN)) -ge DEBOUNCE_PLACEHOLDER ]]; then
+    echo "[Watcher] File changed: $FILE ($EVENT)"
+    bash -c "COMMAND_PLACEHOLDER"
+    echo $CURRENT_TIME > "$LAST_RUN_FILE"
+  fi
+done
+WATCHER_EOF
+    # Replace placeholders
     RECURSIVE_FLAG=""
     if [[ "$RECURSIVE" == "true" ]]; then
       RECURSIVE_FLAG="-r"
     fi
-    
-    cat > "$WATCHER_SCRIPT" << EOF
-#!/bin/bash
-set -e
-
-LAST_RUN=0
-DEBOUNCE=$DEBOUNCE
-
-inotifywait $RECURSIVE_FLAG -m -e "$INOTIFY_EVENTS" --format '%w%f %e' "$WATCH_PATH" | while read FILE EVENT
-do
-  CURRENT_TIME=\$(date +%s)
-  if [[ \$((CURRENT_TIME - LAST_RUN)) -ge \$DEBOUNCE ]]; then
-    echo "[Watcher] File changed: \$FILE (\$EVENT)"
-    bash -c "$COMMAND"
-    LAST_RUN=\$CURRENT_TIME
-  fi
-done
-EOF
+    sed -i.bak \
+      -e "s|RECURSIVE_FLAG_PLACEHOLDER|$RECURSIVE_FLAG|g" \
+      -e "s|INOTIFY_EVENTS_PLACEHOLDER|$INOTIFY_EVENTS|g" \
+      -e "s|WATCH_PATH_PLACEHOLDER|$WATCH_PATH|g" \
+      -e "s|DEBOUNCE_PLACEHOLDER|$DEBOUNCE|g" \
+      -e "s|COMMAND_PLACEHOLDER|$COMMAND|g" \
+      "$WATCHER_SCRIPT"
+    rm -f "${WATCHER_SCRIPT}.bak"
     ;;
   
   fswatch)
-    # fswatch events mapping (macOS)
-    cat > "$WATCHER_SCRIPT" << EOF
+    # fswatch events mapping (macOS) — fswatch outputs: path flags
+    cat > "$WATCHER_SCRIPT" << 'WATCHER_EOF'
 #!/bin/bash
 set -e
 
-LAST_RUN=0
-DEBOUNCE=$DEBOUNCE
+LAST_RUN_FILE=$(mktemp)
+echo 0 > "$LAST_RUN_FILE"
+trap "rm -f $LAST_RUN_FILE" EXIT
 
-fswatch -x -r "$WATCH_PATH" | while read EVENT FILE
+fswatch -x "WATCH_PATH_PLACEHOLDER" | while read FILE EVENT
 do
-  CURRENT_TIME=\$(date +%s)
-  if [[ \$((CURRENT_TIME - LAST_RUN)) -ge \$DEBOUNCE ]]; then
-    echo "[Watcher] File changed: \$FILE (\$EVENT)"
-    bash -c "$COMMAND"
-    LAST_RUN=\$CURRENT_TIME
+  CURRENT_TIME=$(date +%s)
+  LAST_RUN=$(cat "$LAST_RUN_FILE")
+  if [[ $((CURRENT_TIME - LAST_RUN)) -ge DEBOUNCE_PLACEHOLDER ]]; then
+    echo "[Watcher] File changed: $FILE ($EVENT)"
+    bash -c "COMMAND_PLACEHOLDER"
+    echo $CURRENT_TIME > "$LAST_RUN_FILE"
   fi
 done
-EOF
+WATCHER_EOF
+    sed -i.bak \
+      -e "s|WATCH_PATH_PLACEHOLDER|$WATCH_PATH|g" \
+      -e "s|DEBOUNCE_PLACEHOLDER|$DEBOUNCE|g" \
+      -e "s|COMMAND_PLACEHOLDER|$COMMAND|g" \
+      "$WATCHER_SCRIPT"
+    rm -f "${WATCHER_SCRIPT}.bak"
     ;;
   
   polling)
-    # Polling with find and stat
-    cat > "$WATCHER_SCRIPT" << EOF
+    # Polling with find and stat (cross-platform stat)
+    cat > "$WATCHER_SCRIPT" << 'WATCHER_EOF'
 #!/bin/bash
 set -e
 
+# Cross-platform stat for modification time
+get_mtime() {
+  stat -f "%m %z" "$1" 2>/dev/null || stat -c "%Y %s" "$1" 2>/dev/null || echo "0 0"
+}
+
+LAST_RUN_FILE=$(mktemp)
+echo 0 > "$LAST_RUN_FILE"
+trap "rm -f $LAST_RUN_FILE" EXIT
+
 declare -A FILE_STATES
-LAST_RUN=0
-DEBOUNCE=$DEBOUNCE
-POLL_INTERVAL=$POLL_INTERVAL
+POLL_INTERVAL=POLL_INTERVAL_PLACEHOLDER
 
 # Initial scan
-if [[ "$RECURSIVE" == "true" ]]; then
-  find "$WATCH_PATH" -type f 2>/dev/null | while read FILE; do
-    STAT=\$(stat -c "%Y %s" "\$FILE" 2>/dev/null || echo "0 0")
-    FILE_STATES["\$FILE"]="\$STAT"
-  done
+if [[ "RECURSIVE_PLACEHOLDER" == "true" ]]; then
+  while IFS= read -r FILE; do
+    FILE_STATES["$FILE"]="$(get_mtime "$FILE")"
+  done < <(find "WATCH_PATH_PLACEHOLDER" -type f 2>/dev/null)
 else
-  for FILE in "$WATCH_PATH"/*; do
-    if [[ -f "\$FILE" ]]; then
-      STAT=\$(stat -c "%Y %s" "\$FILE" 2>/dev/null || echo "0 0")
-      FILE_STATES["\$FILE"]="\$STAT"
-    fi
+  for FILE in "WATCH_PATH_PLACEHOLDER"/*; do
+    [[ -f "$FILE" ]] && FILE_STATES["$FILE"]="$(get_mtime "$FILE")"
   done
 fi
 
 while true; do
-  sleep \$POLL_INTERVAL
-  
-  # Check for changes
-  if [[ "$RECURSIVE" == "true" ]]; then
-    find "$WATCH_PATH" -type f 2>/dev/null | while read FILE; do
-      CURRENT_STAT=\$(stat -c "%Y %s" "\$FILE" 2>/dev/null || echo "0 0")
-      OLD_STAT="\${FILE_STATES[\$FILE]}"
-      
-      if [[ "\$CURRENT_STAT" != "\$OLD_STAT" ]]; then
-        CURRENT_TIME=\$(date +%s)
-        if [[ \$((CURRENT_TIME - LAST_RUN)) -ge \$DEBOUNCE ]]; then
-          echo "[Watcher] File changed: \$FILE"
-          bash -c "$COMMAND"
-          LAST_RUN=\$CURRENT_TIME
-        fi
-        FILE_STATES["\$FILE"]="\$CURRENT_STAT"
+  sleep $POLL_INTERVAL
+
+  check_file() {
+    local FILE="$1"
+    local CURRENT_STAT
+    CURRENT_STAT="$(get_mtime "$FILE")"
+    local OLD_STAT="${FILE_STATES[$FILE]}"
+
+    if [[ "$CURRENT_STAT" != "$OLD_STAT" ]]; then
+      local CURRENT_TIME
+      CURRENT_TIME=$(date +%s)
+      local LAST_RUN
+      LAST_RUN=$(cat "$LAST_RUN_FILE")
+      if [[ $((CURRENT_TIME - LAST_RUN)) -ge DEBOUNCE_PLACEHOLDER ]]; then
+        echo "[Watcher] File changed: $FILE"
+        bash -c "COMMAND_PLACEHOLDER"
+        echo $CURRENT_TIME > "$LAST_RUN_FILE"
       fi
-    done
+      FILE_STATES["$FILE"]="$CURRENT_STAT"
+    fi
+  }
+
+  if [[ "RECURSIVE_PLACEHOLDER" == "true" ]]; then
+    while IFS= read -r FILE; do
+      check_file "$FILE"
+    done < <(find "WATCH_PATH_PLACEHOLDER" -type f 2>/dev/null)
   else
-    for FILE in "$WATCH_PATH"/*; do
-      if [[ -f "\$FILE" ]]; then
-        CURRENT_STAT=\$(stat -c "%Y %s" "\$FILE" 2>/dev/null || echo "0 0")
-        OLD_STAT="\${FILE_STATES[\$FILE]}"
-        
-        if [[ "\$CURRENT_STAT" != "\$OLD_STAT" ]]; then
-          CURRENT_TIME=\$(date +%s)
-          if [[ \$((CURRENT_TIME - LAST_RUN)) -ge \$DEBOUNCE ]]; then
-            echo "[Watcher] File changed: \$FILE"
-            bash -c "$COMMAND"
-            LAST_RUN=\$CURRENT_TIME
-          fi
-          FILE_STATES["\$FILE"]="\$CURRENT_STAT"
-        fi
-      fi
+    for FILE in "WATCH_PATH_PLACEHOLDER"/*; do
+      [[ -f "$FILE" ]] && check_file "$FILE"
     done
   fi
 done
-EOF
+WATCHER_EOF
+    sed -i.bak \
+      -e "s|WATCH_PATH_PLACEHOLDER|$WATCH_PATH|g" \
+      -e "s|RECURSIVE_PLACEHOLDER|$RECURSIVE|g" \
+      -e "s|POLL_INTERVAL_PLACEHOLDER|$POLL_INTERVAL|g" \
+      -e "s|DEBOUNCE_PLACEHOLDER|$DEBOUNCE|g" \
+      -e "s|COMMAND_PLACEHOLDER|$COMMAND|g" \
+      "$WATCHER_SCRIPT"
+    rm -f "${WATCHER_SCRIPT}.bak"
     ;;
   
   *)
@@ -204,7 +228,7 @@ esac
 chmod +x "$WATCHER_SCRIPT"
 
 # Create systemd service or launchd plist for persistence
-PLATFORM=$(./detect-platform.sh)
+PLATFORM=$("$SCRIPT_DIR/detect-platform.sh")
 
 case "$PLATFORM" in
   wsl|linux)
