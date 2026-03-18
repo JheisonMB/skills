@@ -1,5 +1,27 @@
 # Changelog - Task Trigger Skill
 
+## Version 2.1 (2026-03-18)
+
+### New Features
+- **`/task-trigger:update <id>`**: Update individual task fields (prompt, schedule, model, name, timeout, working-dir) without remove+add. Auto-reloads scheduler when schedule changes.
+- **`/task-trigger:reload <id>`**: Reload task config into launchd/crontab after manual JSON edits. No more manual `launchctl unload + load`.
+- **`/task-trigger:pause <id>` / `/task-trigger:resume <id>`**: Temporarily disable/enable tasks without removing them. Unloads from scheduler on pause, reloads on resume.
+- **`/task-trigger:verify <id>`**: Confirm task is actually registered and active in OS scheduler (not just in JSON).
+- **Scheduler cross-reference in list**: `list-tasks.py` now shows `Active` vs `JSON-only` vs `Paused` by checking launchctl/crontab.
+- **`--force` flag on `add-to-crontab.sh`**: Non-interactive mode for automated/scripted use.
+
+### Bug Fixes
+- **remove-task.sh**: Now uses `launchctl remove <label>` before deleting plist to clear stale PID and prevent "Input/output error" on reload.
+- **add-to-launchd.sh**: Added `--force` flag for non-interactive auto-load. Always unloads previous plist version before loading new one.
+- **start-watcher.sh**: Now auto-loads the plist in launchd after creating it (was only printing instructions before).
+- **reload-task.sh**: Complex cron expressions (e.g. `0 */2 * * *`) now fall back to 60s interval instead of generating invalid plist XML.
+
+### New Scripts
+- `update-task.sh` — Update task fields in-place
+- `reload-task.sh` — Reload task config into scheduler
+- `pause-resume-task.sh` — Pause/resume without removing
+- `verify-task.sh` — Verify task is active in OS scheduler
+
 ## Version 2.0 (2026-03-18)
 
 ### New Features

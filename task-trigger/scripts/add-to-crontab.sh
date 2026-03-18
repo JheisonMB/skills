@@ -8,6 +8,7 @@ TASK_ID=""
 CRON_EXPR=""
 COMMAND=""
 DRY_RUN=false
+FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -15,6 +16,7 @@ while [[ $# -gt 0 ]]; do
     --cron)     CRON_EXPR="$2"; shift 2 ;;
     --command)  COMMAND="$2";   shift 2 ;;
     --dry-run)  DRY_RUN=true;   shift ;;
+    --force)    FORCE=true;     shift ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -47,8 +49,10 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 0
 fi
 
-echo "Press Enter to continue or Ctrl+C to cancel..."
-read -r
+if [[ "$FORCE" != true ]]; then
+  echo "Press Enter to continue or Ctrl+C to cancel..."
+  read -r
+fi
 
 # Apply new crontab
 crontab "$TEMP_CRONTAB"

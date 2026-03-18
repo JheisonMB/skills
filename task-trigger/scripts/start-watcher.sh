@@ -241,8 +241,8 @@ esac
 # Bug 6: Ensure script is executable
 chmod +x "$WATCHER_SCRIPT"
 
-# Bug 3: Resolve full PATH for launchd plist
-USER_PATH=$(echo "$PATH")
+# Use clean PATH for launchd/systemd (don't capture shell's PATH)
+CLEAN_PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 case "$PLATFORM" in
   wsl|linux)
@@ -259,7 +259,7 @@ Type=simple
 ExecStart=$WATCHER_SCRIPT
 Restart=always
 RestartSec=10
-Environment=PATH=$USER_PATH
+Environment=PATH=$CLEAN_PATH
 
 [Install]
 WantedBy=default.target
@@ -295,14 +295,20 @@ EOF
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>$USER_PATH</string>
+    <string>$CLEAN_PATH</string>
   </dict>
 </dict>
 </plist>
 EOF
 
     echo "Launchd plist created: $PLIST_FILE"
-    echo "To load: launchctl load $PLIST_FILE"
+    # Auto-load the plist
+    LABEL="com.task-trigger.$TASK_ID"
+    if launchctl list "$LABEL" &>/dev/null; then
+      launchctl remove "$LABEL" 2>/dev/null || launchctl unload "$PLIST_FILE" 2>/dev/null || true
+    fi
+    launchctl load "$PLIST_FILE"
+    echo "Launchd job loaded for watcher: $TASK_ID"
     ;;
 esac
 

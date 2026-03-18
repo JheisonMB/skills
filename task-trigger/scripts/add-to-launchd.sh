@@ -12,6 +12,7 @@ COMMAND=""
 INTERVAL=""
 WORKING_DIR="$HOME"
 DRY_RUN=false
+FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -22,6 +23,7 @@ while [[ $# -gt 0 ]]; do
     --interval)     INTERVAL="$2";     shift 2 ;;
     --working-dir)  WORKING_DIR="$2";  shift 2 ;;
     --dry-run)      DRY_RUN=true;      shift ;;
+    --force)        FORCE=true;        shift ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -110,13 +112,22 @@ fi
 echo "$PLIST_CONTENT" > "$PLIST_FILE"
 
 echo "Launchd plist created: $PLIST_FILE"
-echo "Contents:"
-cat "$PLIST_FILE"
-echo ""
-echo "Press Enter to load with launchctl or Ctrl+C to cancel..."
-read -r
 
-launchctl load "$PLIST_FILE"
+# Unload previous version if loaded (prevents stale PID errors)
+LABEL="com.task-trigger.$TASK_ID"
+if launchctl list "$LABEL" &>/dev/null; then
+  launchctl remove "$LABEL" 2>/dev/null || launchctl unload "$PLIST_FILE" 2>/dev/null || true
+fi
 
-echo "Launchd job loaded successfully for task: $TASK_ID"
+if [[ "$FORCE" == true ]]; then
+  launchctl load "$PLIST_FILE"
+  echo "Launchd job loaded for task: $TASK_ID"
+else
+  echo ""
+  echo "Press Enter to load with launchctl or Ctrl+C to cancel..."
+  read -r
+  launchctl load "$PLIST_FILE"
+  echo "Launchd job loaded successfully for task: $TASK_ID"
+fi
+
 echo "To unload: launchctl unload $PLIST_FILE"

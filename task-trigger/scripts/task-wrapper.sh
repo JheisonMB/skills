@@ -78,6 +78,48 @@ if not task.get("enabled", True):
         f.write(f"{ts} task={TASK_ID} status=skipped reason=disabled\n")
     sys.exit(0)
 
+# Cron-check: when launchd runs this every 60s for complex cron expressions,
+# verify the current time matches the cron expression before executing.
+cron_expr = trigger.get("expression", "")
+if cron_expr:
+    parts = cron_expr.split()
+    if len(parts) == 5:
+        now = datetime.now()
+
+        def matches_field(field, value, max_val):
+            """Check if a cron field matches a given value."""
+            if field == "*":
+                return True
+            for item in field.split(","):
+                if "/" in item:
+                    base, step = item.split("/", 1)
+                    step = int(step)
+                    start = 0 if base == "*" else int(base)
+                    if (value - start) % step == 0 and value >= start:
+                        return True
+                elif "-" in item:
+                    lo, hi = item.split("-", 1)
+                    if int(lo) <= value <= int(hi):
+                        return True
+                else:
+                    if int(item) == value:
+                        return True
+            return False
+
+        minute_ok = matches_field(parts[0], now.minute, 59)
+        hour_ok = matches_field(parts[1], now.hour, 23)
+        dom_ok = matches_field(parts[2], now.day, 31)
+        month_ok = matches_field(parts[3], now.month, 12)
+        # cron weekday: 0=Sunday, python isoweekday: 1=Mon..7=Sun
+        py_dow = now.isoweekday() % 7  # convert to 0=Sun
+        dow_ok = matches_field(parts[4], py_dow, 6)
+
+        if not (minute_ok and hour_ok and dom_ok and month_ok and dow_ok):
+            ts = time.strftime("[%Y-%m-%d %H:%M:%S]")
+            with open(log_path, "a") as f:
+                f.write(f"{ts} task={TASK_ID} status=skipped reason=cron_no_match\n")
+            sys.exit(0)
+
 # Execute via run-task.sh
 run_script = os.path.join(SCRIPT_DIR, "run-task.sh")
 result = subprocess.run([run_script, TASK_ID])

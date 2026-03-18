@@ -28,7 +28,7 @@ metadata:
     category: automation
     last_updated: "2026-03-18"
     includes_scripts: true
-    features: ["cron scheduling", "file monitoring", "cross-platform", "auto-cleanup", "interval scheduling"]
+    features: ["cron scheduling", "file monitoring", "cross-platform", "auto-cleanup", "interval scheduling", "update-in-place", "pause/resume", "scheduler verification"]
 ---
 
 # Task Trigger Skill
@@ -53,13 +53,18 @@ user: "every day at 9am summarize my memory MCP entries"
 |---|---|
 | `/task-trigger:add` | Register a new task interactively (ALWAYS ask confirmation) |
 | `/task-trigger:watch` | Start monitoring a file/directory for changes |
-| `/task-trigger:list` | Show all registered tasks |
+| `/task-trigger:list` | Show all registered tasks (cross-references with scheduler) |
 | `/task-trigger:watchers` | List active file watchers |
 | `/task-trigger:remove <id>` | Remove a task + clean scheduler |
 | `/task-trigger:unwatch <id>` | Stop monitoring a file/directory |
 | `/task-trigger:logs [id]` | View execution history |
 | `/task-trigger:run <id>` | Execute task immediately |
 | `/task-trigger:status` | Check scheduler health + time remaining |
+| `/task-trigger:update <id>` | Update individual fields (prompt, schedule, model, etc.) |
+| `/task-trigger:reload <id>` | Reload task config into scheduler after manual JSON edits |
+| `/task-trigger:pause <id>` | Temporarily disable task without removing |
+| `/task-trigger:resume <id>` | Re-enable a paused task |
+| `/task-trigger:verify <id>` | Confirm task is actually active in OS scheduler |
 
 ## Available Scripts
 
@@ -69,8 +74,8 @@ This skill includes pre-built scripts for common operations. Use them to ensure 
 |---|---|---|
 | `detect-platform.sh` | Detect OS platform | `./scripts/detect-platform.sh` → outputs: `wsl`, `macos`, or `linux` |
 | `detect-cli.sh` | Detect available CLI | `./scripts/detect-cli.sh` → outputs: full path (e.g. `/usr/local/bin/opencode`) or `none` |
-| `add-to-crontab.sh` | Add task to crontab | `./scripts/add-to-crontab.sh --task-id <id> --cron <expr> --command <cmd> [--dry-run]` |
-| `add-to-launchd.sh` | Add task to launchd | `./scripts/add-to-launchd.sh --task-id <id> (--hour <H> --minute <M> \| --interval <secs>) --command <cmd> [--working-dir <path>] [--dry-run]` |
+| `add-to-crontab.sh` | Add task to crontab | `./scripts/add-to-crontab.sh --task-id <id> --cron <expr> --command <cmd> [--dry-run] [--force]` |
+| `add-to-launchd.sh` | Add task to launchd | `./scripts/add-to-launchd.sh --task-id <id> (--hour <H> --minute <M> \| --interval <secs>) --command <cmd> [--working-dir <path>] [--dry-run] [--force]` |
 | `task-wrapper.sh` | Wrapper for scheduler | `./scripts/task-wrapper.sh <task-id>` — launchd/crontab call THIS, not the CLI |
 | `detect-watcher.sh` | Detect file monitoring tools | `./scripts/detect-watcher.sh` → outputs: `inotifywait`, `fswatch`, `polling`, or `none` |
 | `start-watcher.sh` | Start file/directory watcher | `./scripts/start-watcher.sh --task-id <id> --path <path> --events <events> --command <cmd> [--dry-run]` |
@@ -80,6 +85,10 @@ This skill includes pre-built scripts for common operations. Use them to ensure 
 | `remove-task.sh` | Remove task completely | `./scripts/remove-task.sh <task-id> [--force]` |
 | `view-logs.sh` | View task logs | `./scripts/view-logs.sh [task-id] [--tail] [--lines N]` |
 | `run-task.sh` | Execute task now | `./scripts/run-task.sh <task-id>` |
+| `update-task.sh` | Update task fields | `./scripts/update-task.sh <task-id> [--prompt "..."] [--schedule "..."] [--model "..."] [--name "..."] [--timeout N] [--working-dir /path] [--force]` |
+| `reload-task.sh` | Reload task in scheduler | `./scripts/reload-task.sh <task-id> [--force]` |
+| `pause-resume-task.sh` | Pause/resume task | `./scripts/pause-resume-task.sh <task-id> --pause\|--resume [--force]` |
+| `verify-task.sh` | Verify task in scheduler | `./scripts/verify-task.sh <task-id>` |
 
 **IMPORTANT:**
 - Always use scripts for repetitive operations instead of writing bash code manually.
@@ -398,6 +407,53 @@ Use the script instead of manual log viewing:
 Use the script instead of manual execution:
 ```bash
 ./scripts/run-task.sh <task-id>
+```
+
+### Updating Tasks (`/task-trigger:update <id>`)
+Update individual fields without removing and recreating:
+```bash
+# Update prompt only
+./scripts/update-task.sh <task-id> --prompt "new prompt text"
+
+# Update schedule (auto-reloads in scheduler)
+./scripts/update-task.sh <task-id> --schedule "30 8 * * *"
+
+# Update multiple fields at once
+./scripts/update-task.sh <task-id> --prompt "new prompt" --model "deepseek/deepseek-chat" --timeout 600
+
+# Non-interactive (for automated use)
+./scripts/update-task.sh <task-id> --schedule "0 10 * * *" --force
+```
+Available fields: `--prompt`, `--schedule`, `--model`, `--name`, `--timeout`, `--working-dir`
+If `--schedule` changes, the script automatically calls `reload-task.sh`.
+
+### Reloading Tasks (`/task-trigger:reload <id>`)
+After editing tasks.json manually, reload the config into the scheduler:
+```bash
+# Interactive
+./scripts/reload-task.sh <task-id>
+
+# Non-interactive
+./scripts/reload-task.sh <task-id> --force
+```
+
+### Pausing/Resuming Tasks (`/task-trigger:pause <id>` / `/task-trigger:resume <id>`)
+Temporarily disable a task without removing it:
+```bash
+# Pause — unloads from scheduler, marks disabled in JSON
+./scripts/pause-resume-task.sh <task-id> --pause
+
+# Resume — reloads in scheduler, marks enabled in JSON
+./scripts/pause-resume-task.sh <task-id> --resume
+```
+
+### Verifying Tasks (`/task-trigger:verify <id>`)
+Confirm a task is actually registered and active in the OS scheduler:
+```bash
+./scripts/verify-task.sh <task-id>
+# ✓ Task 'daily-backup' is active in launchd
+# ✗ Task 'daily-backup' NOT found in crontab
+# ⚠ Task 'daily-backup' has plist but is NOT loaded in launchd
 ```
 
 ### Checking Status (`/task-trigger:status`)
