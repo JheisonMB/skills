@@ -56,7 +56,9 @@ if agent == 'opencode':
     if model:
         cmd.extend(['--model', model])
 elif agent == 'kiro':
-    cmd = ['kiro', 'chat', prompt]
+    cmd = ['kiro-cli', 'chat', '--no-interactive', prompt]
+    if model:
+        cmd.extend(['--model', model])
 else:
     print(f\"Unknown agent: {agent}\")
     sys.exit(1)
