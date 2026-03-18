@@ -155,8 +155,15 @@ Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist):
 Use the script instead of manual bash:
 
 ```bash
-# Build the command
-COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday and summarize them. Write output to $HOME/.task-trigger/logs/daily-memory-summary.log'"
+# Detect CLI first
+CLI=$(./scripts/detect-cli.sh)
+
+# Build command based on CLI
+if [[ "$CLI" == "opencode" ]]; then
+  COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
+elif [[ "$CLI" == "kiro" ]]; then
+  COMMAND="kiro-cli chat --no-interactive 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
+fi
 
 # Use the script
 ./scripts/add-to-crontab.sh \
@@ -169,8 +176,15 @@ COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday
 Use the script instead of manual XML creation:
 
 ```bash
-# Build the command  
-COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday and summarize them. Write output to $HOME/.task-trigger/logs/daily-memory-summary.log'"
+# Detect CLI first
+CLI=$(./scripts/detect-cli.sh)
+
+# Build command based on CLI
+if [[ "$CLI" == "opencode" ]]; then
+  COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
+elif [[ "$CLI" == "kiro" ]]; then
+  COMMAND="kiro-cli chat --no-interactive 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
+fi
 
 # Use the script
 ./scripts/add-to-launchd.sh \
@@ -263,14 +277,14 @@ Use the script instead of manual execution:
 
 ### opencode
 - **Headless command**: `opencode run --prompt "message"`
-- **Model flag**: `--model "provider/model"` (verified from `opencode --help`)
-- **Timeout**: Default 5 minutes
-- **Example**: `opencode run --prompt "Check memory" --model "deepseek/deepseek-chat"`
+- **Model flag**: `-m "provider/model"`
+- **Example**: `opencode run --prompt "Check memory" -m "deepseek/deepseek-chat"`
 
 ### kiro
-- **Headless command**: `kiro chat` (from `kiro --help-all`)
-- **Check for additional flags**: `kiro chat --help` when detected
-- **Example**: `kiro chat "Check memory"` (exact syntax may vary)
+- **Binary name**: `kiro-cli` (not `kiro`)
+- **Headless command**: `kiro-cli chat --no-interactive "message"`
+- **Model flag**: `--model "provider/model"`
+- **Example**: `kiro-cli chat --no-interactive "Check memory" --model "anthropic/claude-sonnet-4"`
 
 ## Important Rules
 
