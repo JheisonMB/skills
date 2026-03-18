@@ -1,4 +1,4 @@
-# Task Trigger Skill v1.0
+# Task Trigger Skill v2.0
 
 A skill that enables agents to register, manage, and execute scheduled tasks using OS native scheduler.
 
@@ -8,6 +8,7 @@ A skill that enables agents to register, manage, and execute scheduled tasks usi
 - **Cross-platform**: Works on WSL/Linux (crontab) and macOS (launchd)
 - **Headless execution**: Tasks run without open session
 - **Temporal tasks**: Support for "every minute during the next hour"
+- **File watchers**: Monitor files/directories for changes (inotifywait/fswatch/polling)
 - **CLI detection**: Automatically detects opencode or kiro
 - **Confirmation required**: Always asks before modifying scheduler
 - **Model awareness**: Include model flag only when specified
@@ -17,8 +18,11 @@ A skill that enables agents to register, manage, and execute scheduled tasks usi
 
 ### Commands
 - `/task-trigger:add` - Register new task (ALWAYS asks confirmation)
+- `/task-trigger:watch` - Start monitoring a file/directory for changes
 - `/task-trigger:list` - Show all registered tasks
+- `/task-trigger:watchers` - List active file watchers
 - `/task-trigger:remove <id>` - Remove task + clean scheduler
+- `/task-trigger:unwatch <id>` - Stop monitoring a file/directory
 - `/task-trigger:logs [id]` - View structured execution history
 - `/task-trigger:run <id>` - Execute task immediately
 - `/task-trigger:status` - Check scheduler health
@@ -36,6 +40,10 @@ A skill that enables agents to register, manage, and execute scheduled tasks usi
 
 # Complex scheduling
 "Monday and Wednesday at 8:30am backup files"
+
+# File watchers
+"watch my log file at /var/log/app.log and alert on errors"
+"monitor the downloads folder for new PDF files"
 ```
 
 ## How It Works
@@ -69,8 +77,8 @@ A skill that enables agents to register, manage, and execute scheduled tasks usi
 - Model flag: `--model "provider/model"` (verified from `opencode --help`)
 
 ### kiro
-- Headless: `kiro chat` (from `kiro --help-all`)
-- Exact syntax may vary, check `kiro chat --help`
+- Headless: `kiro-cli chat --no-interactive "message"`
+- Model flag: `--model "provider/model"`
 
 ## Files Created
 
@@ -79,6 +87,8 @@ $HOME/.task-trigger/
 ├── tasks.json                 # Task definitions
 ├── logs/                     # Execution logs
 │   └── {task-id}.log
+├── watchers/                 # File watcher scripts
+│   └── {task-id}.sh
 └── launchd/                  # macOS plist files (macOS only)
     └── com.task-trigger.*.plist
 ```

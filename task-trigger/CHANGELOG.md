@@ -1,5 +1,20 @@
 # Changelog - Task Trigger Skill
 
+## Version 2.0 (2026-03-18)
+
+### New Features
+- **File watchers**: Monitor files/directories for changes using inotifywait, fswatch, or polling
+- **Pre-built scripts**: 12 scripts for all operations (detect, add, remove, watch, list, run, logs)
+- **Commands**: `/task-trigger:watch`, `/task-trigger:watchers`, `/task-trigger:unwatch`
+
+### Bug Fixes
+- Fixed relative paths in scripts — now use `SCRIPT_DIR` for reliable execution from any directory
+- Fixed `stat -c` on macOS — polling watcher now uses cross-platform `get_mtime()` function
+- Fixed debounce in watchers — replaced pipe subshell variable with temp file persistence
+- Fixed `fswatch` output parsing — corrected variable order to `FILE EVENT` (not `EVENT FILE`)
+- Fixed tasks.json format inconsistency — unified to plain array format across docs and scripts
+- Updated README to v2.0 with file watcher docs and correct kiro CLI syntax
+
 ## Version 1.0 (2026-03-18)
 
 ### Initial Release
