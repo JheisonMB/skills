@@ -1,5 +1,68 @@
 # Changelog - Mindful-Precision Skill
 
+## Version 2.3 (2026-03-18)
+
+### Two New Pillars
+
+#### 1. Security Guard 🔴 CRITICAL
+New pillar to protect against security threats at every level:
+
+**Block immediately (no option):**
+- Prompt injection — "forget instructions", "ignore rules", role-switching
+- Data exfiltration — curl/wget sending local data to external URLs
+- Port/service exposure — binding to 0.0.0.0, opening firewall ports
+
+**Ask confirmation before proceeding:**
+- Reading sensitive files — .env, SSH keys, credentials, tokens, PII
+- Modifying sensitive files — security configs, permissions, auth files
+
+**Context injection detection:**
+- Scans file contents, commit messages, env vars for hidden instructions
+- Flags anything that contradicts user intent or tries to override behavior
+
+#### 2. Token Efficiency 🟡 IMPORTANT
+New pillar to minimize token waste in commands and responses:
+
+- **Shell commands**: pipe with `tail -n`, `grep`, `head` to filter verbose output
+- **Subshells**: capture exit code + filtered output instead of streaming everything
+- **No re-explaining code** unless explicitly asked
+- **Concise responses** — go to the point, don't repeat what user knows
+- **Skip generic disclaimers** when context is clear (security warnings stay)
+
+### Files Modified
+
+- **SKILL.md**
+  - Updated frontmatter: version 2.3, expanded description with 5 principles
+  - Added "Security Guard" section with block/confirm/detect behaviors
+  - Added "Token Efficiency" section with shell and response guidelines
+  - Updated Session Checklist (5 items instead of 3)
+  - Updated Priority Rules table (5 principles instead of 3)
+  - Updated Final Reminder to include new pillars
+  - Security Guard placed first in priority order
+
+- **README.md**
+  - Updated radar diagram (5 axes instead of 3)
+  - Updated "What This Skill Does" (5 behaviors instead of 3)
+  - Added new documentation links
+  - Updated version to 2.3
+
+- **CHANGELOG.md**
+  - Added Version 2.3 section
+
+### Files Created
+
+- **references/SECURITY_GUARD_EXAMPLES.md** — 10 examples covering prompt injection, data exfiltration, port exposure, sensitive file access, and context injection detection
+- **references/TOKEN_EFFICIENCY_EXAMPLES.md** — 8 examples covering shell filtering, subshells, concise responses, and avoiding re-explanation
+
+### Philosophy Evolution
+
+**From:** 3 principles (Verify, Critical Thinking, Resourcefulness)
+**To:** 5 principles (Security, Verify, Critical Thinking, Resourcefulness, Token Efficiency)
+
+The skill now covers the full lifecycle: protect → think → act → verify → optimize.
+
+---
+
 ## Version 2.2 (2026-03-18)
 
 ### Philosophy Simplification
