@@ -1,60 +1,46 @@
 #!/bin/bash
 # Create and load launchd plist for macOS
-# Usage: ./add-to-launchd.sh --task-id <id> --hour <hour> --minute <minute> --command <command>
+# Usage: ./add-to-launchd.sh --task-id <id> --hour <hour> --minute <minute> --command <command> [--dry-run]
 
 set -e
 
-# Parse arguments
 TASK_ID=""
 HOUR=""
 MINUTE=""
 COMMAND=""
+DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --task-id)
-      TASK_ID="$2"
-      shift 2
-      ;;
-    --hour)
-      HOUR="$2"
-      shift 2
-      ;;
-    --minute)
-      MINUTE="$2"
-      shift 2
-      ;;
-    --command)
-      COMMAND="$2"
-      shift 2
-      ;;
-    *)
-      echo "Unknown argument: $1"
-      exit 1
-      ;;
+    --task-id)  TASK_ID="$2";  shift 2 ;;
+    --hour)     HOUR="$2";     shift 2 ;;
+    --minute)   MINUTE="$2";   shift 2 ;;
+    --command)  COMMAND="$2";  shift 2 ;;
+    --dry-run)  DRY_RUN=true;  shift ;;
+    *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
 
-# Validate arguments
 if [[ -z "$TASK_ID" || -z "$HOUR" || -z "$MINUTE" || -z "$COMMAND" ]]; then
   echo "Error: Missing required arguments"
   echo "Usage: $0 --task-id <id> --hour <hour> --minute <minute> --command <command>"
   exit 1
 fi
 
-# Create launchd directory
 LAUNCHD_DIR="$HOME/.task-trigger/launchd"
 mkdir -p "$LAUNCHD_DIR"
+mkdir -p "$HOME/.task-trigger/logs"
 
 PLIST_FILE="$LAUNCHD_DIR/com.task-trigger.$TASK_ID.plist"
 LOG_FILE="$HOME/.task-trigger/logs/$TASK_ID.log"
 ERROR_LOG="$HOME/.task-trigger/logs/$TASK_ID.error.log"
 
-# Create plist file
-cat > "$PLIST_FILE" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
+# Bug 3: Capture current user PATH for launchd
+USER_PATH=$(echo "$PATH")
+
+PLIST_CONTENT="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
 <dict>
   <key>Label</key>
   <string>com.task-trigger.$TASK_ID</string>
@@ -78,11 +64,25 @@ cat > "$PLIST_FILE" << EOF
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>$USER_PATH</string>
+    <key>HOME</key>
+    <string>$HOME</string>
   </dict>
 </dict>
-</plist>
-EOF
+</plist>"
+
+if [[ "$DRY_RUN" == true ]]; then
+  echo "=== DRY RUN ==="
+  echo "Would create: $PLIST_FILE"
+  echo ""
+  echo "$PLIST_CONTENT"
+  echo ""
+  echo "Would run: launchctl load $PLIST_FILE"
+  echo "=== No changes made ==="
+  exit 0
+fi
+
+echo "$PLIST_CONTENT" > "$PLIST_FILE"
 
 echo "Launchd plist created: $PLIST_FILE"
 echo "Contents:"
@@ -91,7 +91,6 @@ echo ""
 echo "Press Enter to load with launchctl or Ctrl+C to cancel..."
 read -r
 
-# Load the plist
 launchctl load "$PLIST_FILE"
 
 echo "Launchd job loaded successfully for task: $TASK_ID"

@@ -67,11 +67,11 @@ This skill includes pre-built scripts for common operations. Use them to ensure 
 | Script | Purpose | Usage |
 |---|---|---|
 | `detect-platform.sh` | Detect OS platform | `./scripts/detect-platform.sh` → outputs: `wsl`, `macos`, or `linux` |
-| `detect-cli.sh` | Detect available CLI | `./scripts/detect-cli.sh` → outputs: `opencode`, `kiro`, or `none` |
-| `add-to-crontab.sh` | Add task to crontab | `./scripts/add-to-crontab.sh --task-id <id> --cron <expr> --command <cmd>` |
-| `add-to-launchd.sh` | Add task to launchd | `./scripts/add-to-launchd.sh --task-id <id> --hour <H> --minute <M> --command <cmd>` |
+| `detect-cli.sh` | Detect available CLI | `./scripts/detect-cli.sh` → outputs: full path (e.g. `/usr/local/bin/opencode`) or `none` |
+| `add-to-crontab.sh` | Add task to crontab | `./scripts/add-to-crontab.sh --task-id <id> --cron <expr> --command <cmd> [--dry-run]` |
+| `add-to-launchd.sh` | Add task to launchd | `./scripts/add-to-launchd.sh --task-id <id> --hour <H> --minute <M> --command <cmd> [--dry-run]` |
 | `detect-watcher.sh` | Detect file monitoring tools | `./scripts/detect-watcher.sh` → outputs: `inotifywait`, `fswatch`, `polling`, or `none` |
-| `start-watcher.sh` | Start file/directory watcher | `./scripts/start-watcher.sh --task-id <id> --path <path> --events <events> --command <cmd>` |
+| `start-watcher.sh` | Start file/directory watcher | `./scripts/start-watcher.sh --task-id <id> --path <path> --events <events> --command <cmd> [--dry-run]` |
 | `stop-watcher.sh` | Stop file watcher | `./scripts/stop-watcher.sh <task-id>` |
 | `list-tasks.py` | List registered tasks | `./scripts/list-tasks.py` |
 | `list-watchers.py` | List active file watchers | `./scripts/list-watchers.py` |
@@ -79,7 +79,9 @@ This skill includes pre-built scripts for common operations. Use them to ensure 
 | `view-logs.sh` | View task logs | `./scripts/view-logs.sh [task-id] [--tail] [--lines N]` |
 | `run-task.sh` | Execute task now | `./scripts/run-task.sh <task-id>` |
 
-**IMPORTANT:** Always use scripts for repetitive operations instead of writing bash code manually.
+**IMPORTANT:**
+- Always use scripts for repetitive operations instead of writing bash code manually.
+- Run `chmod +x scripts/*.sh` after first install to ensure all scripts are executable.
 
 ## How to Use This Skill
 
@@ -97,12 +99,12 @@ You MUST parse natural language into cron expressions. This is best done by you 
 **Duration handling:** When user says "durante la próxima X", calculate expiration time.
 
 ### 2. CLI Detection
-Use the script instead of manual bash:
+`detect-cli.sh` returns the **full path** to the CLI binary (e.g. `/usr/local/bin/opencode` or `/Users/you/.local/bin/kiro-cli`). Store this full path in the task JSON — launchd and crontab don't inherit the user's PATH.
 
 ```bash
-# Instead of writing bash code, use:
-CLI=$(./scripts/detect-cli.sh)
-echo "Detected CLI: $CLI"
+CLI_PATH=$(./scripts/detect-cli.sh)
+echo "Detected CLI: $CLI_PATH"
+# Use $CLI_PATH in commands, not just "opencode" or "kiro-cli"
 ```
 
 ### 3. Platform Detection
@@ -123,7 +125,7 @@ User: "every day at 9am summarize my memory MCP entries using deepseek"
    - Trigger: "every day at 9am" → cron: `0 9 * * *`
    - Prompt: "summarize my memory MCP entries"
    - Model: "deepseek" (if mentioned, else null)
-   - CLI: detect opencode/kiro
+   - CLI: detect with full path
 ```
 
 ### Step 2: Generate Task ID
@@ -131,7 +133,9 @@ Create unique ID: `daily-memory-summary`, `log-analysis-30min`, etc.
 Rules: lowercase, hyphens, based on description.
 
 ### Step 3: Create Task JSON
-Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist):
+Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist).
+
+The file is a plain JSON array: `[{task1}, {task2}, ...]`
 
 #### For cron-based tasks:
 ```json
@@ -147,6 +151,7 @@ Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist):
     "expires_at": null
   },
   "execution": {
+    "cli_path": "/usr/local/bin/opencode",
     "agent": "opencode",
     "model": "deepseek/deepseek-chat",
     "prompt": "Check MCP memory for new entries since yesterday and summarize them. Write output to $HOME/.task-trigger/logs/daily-memory-summary.log",
@@ -187,41 +192,37 @@ Create `$HOME/.task-trigger/tasks.json` (create directory if doesn't exist):
 ### Step 4: Platform-Specific Integration
 
 #### For WSL/Linux (crontab):
-Use the script instead of manual bash:
-
 ```bash
-# Detect CLI first
-CLI=$(./scripts/detect-cli.sh)
+CLI_PATH=$(./scripts/detect-cli.sh)
 
-# Build command based on CLI
-if [[ "$CLI" == "opencode" ]]; then
-  COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
-elif [[ "$CLI" == "kiro" ]]; then
-  COMMAND="kiro-cli chat --no-interactive 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
+# Build command using full path
+if [[ "$CLI_PATH" == *opencode* ]]; then
+  COMMAND="$CLI_PATH run --prompt 'your prompt here'"
+else
+  # kiro needs --trust-all-tools for file writes
+  COMMAND="$CLI_PATH chat --no-interactive --trust-all-tools 'your prompt here'"
 fi
 
-# Use the script
+# Preview first, then apply
 ./scripts/add-to-crontab.sh \
   --task-id "daily-memory-summary" \
   --cron "0 9 * * *" \
-  --command "$COMMAND"
+  --command "$COMMAND" \
+  --dry-run
+
+# If looks good, run without --dry-run
 ```
 
 #### For macOS (launchd):
-Use the script instead of manual XML creation:
-
 ```bash
-# Detect CLI first
-CLI=$(./scripts/detect-cli.sh)
+CLI_PATH=$(./scripts/detect-cli.sh)
 
-# Build command based on CLI
-if [[ "$CLI" == "opencode" ]]; then
-  COMMAND="opencode run --prompt 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
-elif [[ "$CLI" == "kiro" ]]; then
-  COMMAND="kiro-cli chat --no-interactive 'Check MCP memory for new entries since yesterday and summarize them. Write output to \$HOME/.task-trigger/logs/daily-memory-summary.log'"
+if [[ "$CLI_PATH" == *opencode* ]]; then
+  COMMAND="$CLI_PATH run --prompt 'your prompt here'"
+else
+  COMMAND="$CLI_PATH chat --no-interactive --trust-all-tools 'your prompt here'"
 fi
 
-# Use the script
 ./scripts/add-to-launchd.sh \
   --task-id "daily-memory-summary" \
   --hour 9 \
@@ -240,7 +241,7 @@ mkdir -p $HOME/.task-trigger/watchers  # For file watchers
 Show summary:
 - Task ID: `daily-memory-summary`
 - Schedule: `0 9 * * *` (every day at 9am)
-- CLI: `opencode` (or `kiro` if detected and opencode not available)
+- CLI: `/usr/local/bin/opencode` (full path)
 - Model: `deepseek/deepseek-chat` (or "last used model" if not specified)
 - Logs: `$HOME/.task-trigger/logs/daily-memory-summary.log`
 - Platform: WSL/macOS/Linux
@@ -266,27 +267,19 @@ Use the file trigger format shown in Step 3.
 
 ### Step 4: Start Watcher
 ```bash
-# Detect CLI first
-CLI=$(./scripts/detect-cli.sh)
+CLI_PATH=$(./scripts/detect-cli.sh)
 
-# Build command based on CLI
-if [[ "$CLI" == "opencode" ]]; then
-  COMMAND="opencode run --prompt 'New log entry detected. Analyze the latest lines and notify if errors found. Write output to \$HOME/.task-trigger/logs/log-analyzer.log'"
-elif [[ "$CLI" == "kiro" ]]; then
-  COMMAND="kiro-cli chat --no-interactive 'New log entry detected. Analyze the latest lines and notify if errors found. Write output to \$HOME/.task-trigger/logs/log-analyzer.log'"
+if [[ "$CLI_PATH" == *opencode* ]]; then
+  COMMAND="$CLI_PATH run --prompt 'New log entry detected. Analyze the latest lines and notify if errors found.'"
+else
+  COMMAND="$CLI_PATH chat --no-interactive --trust-all-tools 'New log entry detected. Analyze the latest lines and notify if errors found.'"
 fi
 
-# Detect available watcher tool
-WATCHER_TOOL=$(./scripts/detect-watcher.sh)
-
-# Start the watcher
 ./scripts/start-watcher.sh \
   --task-id "log-file-watcher" \
   --path "/var/log/app.log" \
   --events "modify" \
   --command "$COMMAND" \
-  --recursive false \
-  --poll-interval 5 \
   --debounce 1
 ```
 
@@ -309,7 +302,11 @@ User: "check logs every minute during the next 30 minutes"
 → expires_at: current_time + 30 minutes
 ```
 
-**Implementation:** Add cleanup mechanism or note in confirmation.
+**Implementation:** When creating temporal tasks:
+1. Calculate `expires_at` = current_time + duration_minutes
+2. Store both `duration_minutes` and `expires_at` in task JSON
+3. The `run-task.sh` script checks `expires_at` before executing — if expired, it disables the task and removes it from the scheduler automatically
+4. `/task-trigger:status` shows time remaining for temporal tasks
 
 ### Model Specification
 ```
@@ -317,6 +314,19 @@ User: "using opencode/zen" or "con claude-3.5-sonnet"
 → Add to command: --model "opencode/zen"
 → If not specified: omit --model flag (uses last model)
 ```
+
+### Prompt Templates
+Prompts support variable substitution for reusable tasks:
+- `{{TIMESTAMP}}` → current ISO 8601 timestamp
+- `{{FILE_PATH}}` → the watched file path (file watchers only)
+- `{{TASK_ID}}` → the task's ID
+- `{{LOG_PATH}}` → the task's log file path
+
+**Example:**
+```
+"prompt": "Analyze {{FILE_PATH}} for errors since {{TIMESTAMP}}. Write results to {{LOG_PATH}}"
+```
+The agent expands these variables at execution time in `run-task.sh`.
 
 ### Working Directory
 Always use `$HOME` (not `~`) in scheduled commands.
@@ -376,8 +386,10 @@ Use the script instead of manual execution:
 ```
 
 ### Checking Status (`/task-trigger:status`)
-- Verify scheduler is running
-- Show temporal tasks with time remaining
+- Verify scheduler is running (crontab entries / launchctl list)
+- Show temporal tasks with time remaining until `expires_at`
+- Show last execution timestamp and result from log
+- Show next scheduled execution time
 - Check log directory health
 
 ## CLI Commands Reference
@@ -390,8 +402,11 @@ Use the script instead of manual execution:
 ### kiro
 - **Binary name**: `kiro-cli` (not `kiro`)
 - **Headless command**: `kiro-cli chat --no-interactive "message"`
+- **Trust flag**: `--trust-all-tools` (required for file writes and tool access)
 - **Model flag**: `--model "provider/model"`
-- **Example**: `kiro-cli chat --no-interactive "Check memory" --model "anthropic/claude-sonnet-4"`
+- **Example**: `kiro-cli chat --no-interactive --trust-all-tools "Check memory" --model "anthropic/claude-sonnet-4"`
+
+**Important**: Always use `--trust-all-tools` with kiro headless commands, otherwise the agent cannot write files or use tools.
 
 ## Important Rules
 
@@ -399,7 +414,7 @@ Use the script instead of manual execution:
 1. **Ask confirmation** before modifying crontab/launchd
 2. **Use scripts for detection** instead of manual bash code
 3. **Parse natural language** into cron expressions (agent's strength)
-4. **Handle temporal tasks** with duration/expiration
+4. **Handle temporal tasks** with duration/expiration and auto-cleanup
 5. **Create necessary directories** (`$HOME/.task-trigger/`, `logs/`, `launchd/`, `watchers/`)
 6. **Use structured logs** with timestamps
 7. **Include model flag** ONLY if user explicitly mentions model
@@ -408,6 +423,10 @@ Use the script instead of manual execution:
 10. **Prefer scripts over manual operations** for consistency
 11. **Detect available watcher tool** before starting file monitoring
 12. **Set appropriate debounce** for file watchers (1-5 seconds)
+13. **Store full CLI path** in task JSON (from `detect-cli.sh`)
+14. **Use --trust-all-tools** with kiro headless commands
+15. **Use --dry-run** to preview changes before applying
+16. **Ensure scripts are executable** (`chmod +x`) before first use
 
 ### NEVER:
 1. Use `--dangerously-skip-permissions`
