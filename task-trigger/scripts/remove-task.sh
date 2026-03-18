@@ -4,6 +4,8 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 TASK_ID="$1"
 if [[ -z "$TASK_ID" ]]; then
   echo "Usage: $0 <task-id>"
@@ -33,7 +35,7 @@ echo "Press Enter to continue or Ctrl+C to cancel..."
 read -r
 
 # Detect platform
-PLATFORM=$(./detect-platform.sh)
+PLATFORM=$("$SCRIPT_DIR/detect-platform.sh")
 
 # Remove from crontab or launchd
 case "$PLATFORM" in

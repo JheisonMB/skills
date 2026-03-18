@@ -4,6 +4,8 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 TASK_ID="$1"
 if [[ -z "$TASK_ID" ]]; then
   echo "Usage: $0 <task-id>"
@@ -13,7 +15,7 @@ fi
 WATCHERS_DIR="$HOME/.task-trigger/watchers"
 WATCHER_SCRIPT="$WATCHERS_DIR/$TASK_ID.sh"
 
-PLATFORM=$(./detect-platform.sh)
+PLATFORM=$("$SCRIPT_DIR/detect-platform.sh")
 
 echo "Stopping watcher: $TASK_ID"
 
