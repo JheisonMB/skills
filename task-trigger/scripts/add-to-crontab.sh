@@ -1,32 +1,21 @@
 #!/bin/bash
 # Add a task to crontab (Linux/WSL)
-# Usage: ./add-to-crontab.sh --task-id <id> --cron <expression> --command <command>
+# Usage: ./add-to-crontab.sh --task-id <id> --cron <expression> --command <command> [--dry-run]
 
 set -e
 
-# Parse arguments
 TASK_ID=""
 CRON_EXPR=""
 COMMAND=""
+DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --task-id)
-      TASK_ID="$2"
-      shift 2
-      ;;
-    --cron)
-      CRON_EXPR="$2"
-      shift 2
-      ;;
-    --command)
-      COMMAND="$2"
-      shift 2
-      ;;
-    *)
-      echo "Unknown argument: $1"
-      exit 1
-      ;;
+    --task-id)  TASK_ID="$2";   shift 2 ;;
+    --cron)     CRON_EXPR="$2"; shift 2 ;;
+    --command)  COMMAND="$2";   shift 2 ;;
+    --dry-run)  DRY_RUN=true;   shift ;;
+    *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
 
@@ -47,11 +36,17 @@ crontab -l 2>/dev/null > "$TEMP_CRONTAB" || echo "" > "$TEMP_CRONTAB"
 echo "# task-trigger: $TASK_ID" >> "$TEMP_CRONTAB"
 echo "$CRON_EXPR $COMMAND" >> "$TEMP_CRONTAB"
 
-# Show what will be added
 echo "Crontab entry to add:"
 echo "  # task-trigger: $TASK_ID"
 echo "  $CRON_EXPR $COMMAND"
 echo ""
+
+if [[ "$DRY_RUN" == true ]]; then
+  echo "=== DRY RUN — No changes made ==="
+  rm -f "$TEMP_CRONTAB"
+  exit 0
+fi
+
 echo "Press Enter to continue or Ctrl+C to cancel..."
 read -r
 

@@ -1,13 +1,13 @@
 #!/bin/bash
-# Detect available CLI tools
-# Outputs: opencode, kiro, or none
+# Detect available CLI tools and output full path
+# Outputs: full path to opencode or kiro-cli, or "none"
 
 set -e
 
 if which opencode >/dev/null 2>&1; then
-  echo "opencode"
+  which opencode
 elif which kiro-cli >/dev/null 2>&1; then
-  echo "kiro"
+  which kiro-cli
 else
   echo "none"
   exit 1

@@ -6,13 +6,24 @@
 - **File watchers**: Monitor files/directories for changes using inotifywait, fswatch, or polling
 - **Pre-built scripts**: 12 scripts for all operations (detect, add, remove, watch, list, run, logs)
 - **Commands**: `/task-trigger:watch`, `/task-trigger:watchers`, `/task-trigger:unwatch`
+- **Dry-run mode**: `--dry-run` flag on add-to-crontab, add-to-launchd, and start-watcher scripts
+- **Prompt templates**: `{{TIMESTAMP}}`, `{{FILE_PATH}}`, `{{TASK_ID}}`, `{{LOG_PATH}}` variable substitution
+- **Auto-cleanup**: Temporal tasks with `expires_at` are automatically disabled when expired
+- **Enhanced status**: Shows last execution, next run time, and time remaining for temporal tasks
 
 ### Bug Fixes
-- Fixed relative paths in scripts — now use `SCRIPT_DIR` for reliable execution from any directory
-- Fixed `stat -c` on macOS — polling watcher now uses cross-platform `get_mtime()` function
+- Fixed `declare -A` incompatible with macOS bash 3.2 — polling watcher now uses temp dir for state
+- Fixed file vs directory handling — start-watcher.sh detects path type and handles single files correctly
+- Fixed PATH not available in launchd — plist now includes user's full PATH in EnvironmentVariables
+- Added `--trust-all-tools` flag for kiro headless commands (required for file writes)
+- Fixed relative paths in scripts — all scripts use `SCRIPT_DIR` for reliable execution from any directory
+- Fixed `stat -c` on macOS — polling watcher uses cross-platform `get_mtime()` function
 - Fixed debounce in watchers — replaced pipe subshell variable with temp file persistence
-- Fixed `fswatch` output parsing — corrected variable order to `FILE EVENT` (not `EVENT FILE`)
+- Fixed `fswatch` output parsing — corrected variable order to `FILE EVENT`
 - Fixed tasks.json format inconsistency — unified to plain array format across docs and scripts
+- `detect-cli.sh` now outputs full binary path instead of just name
+- `run-task.sh` uses `cli_path` from task JSON and adds `--trust-all-tools` for kiro
+- All scripts now ship with +x permissions
 - Updated README to v2.0 with file watcher docs and correct kiro CLI syntax
 
 ## Version 1.0 (2026-03-18)
