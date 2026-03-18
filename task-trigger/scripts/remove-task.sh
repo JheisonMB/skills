@@ -59,11 +59,16 @@ case "$PLATFORM" in
     ;;
   macos)
     echo "Removing from launchd..."
-    PLIST_FILE="$HOME/.task-trigger/launchd/com.task-trigger.$TASK_ID.plist"
-    if [[ -f "$PLIST_FILE" ]]; then
+    LABEL="com.task-trigger.$TASK_ID"
+    PLIST_FILE="$HOME/.task-trigger/launchd/$LABEL.plist"
+    # Force unload by label first (clears stale PID / I/O errors)
+    if launchctl list "$LABEL" &>/dev/null; then
+      echo "Unloading active job: $LABEL"
+      launchctl remove "$LABEL" 2>/dev/null || launchctl unload "$PLIST_FILE" 2>/dev/null || true
+    elif [[ -f "$PLIST_FILE" ]]; then
       launchctl unload "$PLIST_FILE" 2>/dev/null || true
-      rm -f "$PLIST_FILE"
     fi
+    rm -f "$PLIST_FILE"
     ;;
 esac
 
