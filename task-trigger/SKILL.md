@@ -28,7 +28,7 @@ metadata:
     category: automation
     last_updated: "2026-03-18"
     includes_scripts: true
-    features: ["cron scheduling", "file monitoring", "cross-platform", "auto-cleanup", "interval scheduling", "update-in-place", "pause/resume", "scheduler verification"]
+    features: ["cron scheduling", "file monitoring", "cross-platform", "auto-cleanup", "interval scheduling"]
 ---
 
 # Task Trigger Skill
@@ -53,18 +53,13 @@ user: "every day at 9am summarize my memory MCP entries"
 |---|---|
 | `/task-trigger:add` | Register a new task interactively (ALWAYS ask confirmation) |
 | `/task-trigger:watch` | Start monitoring a file/directory for changes |
-| `/task-trigger:list` | Show all registered tasks (cross-references with scheduler) |
+| `/task-trigger:list` | Show all registered tasks |
 | `/task-trigger:watchers` | List active file watchers |
 | `/task-trigger:remove <id>` | Remove a task + clean scheduler |
 | `/task-trigger:unwatch <id>` | Stop monitoring a file/directory |
 | `/task-trigger:logs [id]` | View execution history |
 | `/task-trigger:run <id>` | Execute task immediately |
 | `/task-trigger:status` | Check scheduler health + time remaining |
-| `/task-trigger:update <id>` | Update individual fields (prompt, schedule, model, etc.) |
-| `/task-trigger:reload <id>` | Reload task config into scheduler after manual JSON edits |
-| `/task-trigger:pause <id>` | Temporarily disable task without removing |
-| `/task-trigger:resume <id>` | Re-enable a paused task |
-| `/task-trigger:verify <id>` | Confirm task is actually active in OS scheduler |
 
 ## Available Scripts
 
@@ -85,15 +80,13 @@ This skill includes pre-built scripts for common operations. Use them to ensure 
 | `remove-task.sh` | Remove task completely | `./scripts/remove-task.sh <task-id> [--force]` |
 | `view-logs.sh` | View task logs | `./scripts/view-logs.sh [task-id] [--tail] [--lines N]` |
 | `run-task.sh` | Execute task now | `./scripts/run-task.sh <task-id>` |
-| `update-task.sh` | Update task fields | `./scripts/update-task.sh <task-id> [--prompt "..."] [--schedule "..."] [--model "..."] [--name "..."] [--timeout N] [--working-dir /path] [--force]` |
-| `reload-task.sh` | Reload task in scheduler | `./scripts/reload-task.sh <task-id> [--force]` |
-| `pause-resume-task.sh` | Pause/resume task | `./scripts/pause-resume-task.sh <task-id> --pause\|--resume [--force]` |
-| `verify-task.sh` | Verify task in scheduler | `./scripts/verify-task.sh <task-id>` |
 
 **IMPORTANT:**
 - Always use scripts for repetitive operations instead of writing bash code manually.
 - Run `chmod +x scripts/*.sh` after first install to ensure all scripts are executable.
 - **The plist/crontab MUST call `task-wrapper.sh`, never the CLI directly.**
+- **Use `--force` with `add-to-crontab.sh` and `add-to-launchd.sh`** when calling from agent/automated contexts to skip interactive confirmation.
+- **WSL users**: If scripts fail with `$'\r': command not found`, line endings are CRLF. Fix with `dos2unix scripts/*.sh` or ensure `.gitattributes` is present (included in this skill).
 
 ## How to Use This Skill
 
@@ -220,7 +213,7 @@ COMMAND="$SCRIPT_DIR/task-wrapper.sh daily-memory-summary"
   --task-id "daily-memory-summary" \
   --cron "0 9 * * *" \
   --command "$COMMAND" \
-  --dry-run
+  --force
 ```
 
 #### For macOS (launchd) — Calendar schedule:
@@ -233,7 +226,8 @@ COMMAND="$SCRIPT_DIR/task-wrapper.sh daily-memory-summary"
   --hour 9 \
   --minute 0 \
   --command "$COMMAND" \
-  --working-dir "$HOME"
+  --working-dir "$HOME" \
+  --force
 ```
 
 #### For macOS (launchd) — Interval schedule (every N seconds):
@@ -246,7 +240,8 @@ COMMAND="$SCRIPT_DIR/task-wrapper.sh system-check-5min"
   --task-id "system-check-5min" \
   --interval 300 \
   --command "$COMMAND" \
-  --working-dir "/path/to/project"
+  --working-dir "/path/to/project" \
+  --force
 ```
 
 ### Step 5: Create Log Directory
@@ -409,53 +404,6 @@ Use the script instead of manual execution:
 ./scripts/run-task.sh <task-id>
 ```
 
-### Updating Tasks (`/task-trigger:update <id>`)
-Update individual fields without removing and recreating:
-```bash
-# Update prompt only
-./scripts/update-task.sh <task-id> --prompt "new prompt text"
-
-# Update schedule (auto-reloads in scheduler)
-./scripts/update-task.sh <task-id> --schedule "30 8 * * *"
-
-# Update multiple fields at once
-./scripts/update-task.sh <task-id> --prompt "new prompt" --model "deepseek/deepseek-chat" --timeout 600
-
-# Non-interactive (for automated use)
-./scripts/update-task.sh <task-id> --schedule "0 10 * * *" --force
-```
-Available fields: `--prompt`, `--schedule`, `--model`, `--name`, `--timeout`, `--working-dir`
-If `--schedule` changes, the script automatically calls `reload-task.sh`.
-
-### Reloading Tasks (`/task-trigger:reload <id>`)
-After editing tasks.json manually, reload the config into the scheduler:
-```bash
-# Interactive
-./scripts/reload-task.sh <task-id>
-
-# Non-interactive
-./scripts/reload-task.sh <task-id> --force
-```
-
-### Pausing/Resuming Tasks (`/task-trigger:pause <id>` / `/task-trigger:resume <id>`)
-Temporarily disable a task without removing it:
-```bash
-# Pause — unloads from scheduler, marks disabled in JSON
-./scripts/pause-resume-task.sh <task-id> --pause
-
-# Resume — reloads in scheduler, marks enabled in JSON
-./scripts/pause-resume-task.sh <task-id> --resume
-```
-
-### Verifying Tasks (`/task-trigger:verify <id>`)
-Confirm a task is actually registered and active in the OS scheduler:
-```bash
-./scripts/verify-task.sh <task-id>
-# ✓ Task 'daily-backup' is active in launchd
-# ✗ Task 'daily-backup' NOT found in crontab
-# ⚠ Task 'daily-backup' has plist but is NOT loaded in launchd
-```
-
 ### Checking Status (`/task-trigger:status`)
 - Verify scheduler is running (crontab entries / launchctl list)
 - Show temporal tasks with time remaining until `expires_at`
@@ -501,7 +449,7 @@ Confirm a task is actually registered and active in the OS scheduler:
 17. **Use task-wrapper.sh** as the command in plist/crontab, never the CLI directly
 18. **Use --interval** for "every N minutes/seconds" schedules on macOS
 19. **Use --working-dir** when the task needs a specific directory
-20. **Use --force** with remove-task.sh when calling from scripts/automated contexts
+20. **Use --force** with `remove-task.sh`, `add-to-crontab.sh`, and `add-to-launchd.sh` when calling from agent/automated contexts
 
 ### NEVER:
 1. Use `--dangerously-skip-permissions`

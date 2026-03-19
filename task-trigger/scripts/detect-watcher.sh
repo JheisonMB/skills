@@ -4,11 +4,11 @@
 
 set -e
 
-if which inotifywait >/dev/null 2>&1; then
+if command -v inotifywait >/dev/null 2>&1; then
   echo "inotifywait"
-elif which fswatch >/dev/null 2>&1; then
+elif command -v fswatch >/dev/null 2>&1; then
   echo "fswatch"
-elif which find >/dev/null 2>&1 && which stat >/dev/null 2>&1; then
+elif command -v find >/dev/null 2>&1 && command -v stat >/dev/null 2>&1; then
   echo "polling"
 else
   echo "none"
