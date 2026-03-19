@@ -1,7 +1,6 @@
 #!/bin/bash
 # Create and load launchd plist for macOS
-# Usage: ./add-to-launchd.sh --task-id <id> --hour <H> --minute <M> --command <cmd> [--interval <secs>] [--working-dir <path>] [--dry-run]
-# Note: --hour/--minute and --interval are mutually exclusive
+# Usage: ./add-to-launchd.sh --task-id <id> --hour <H> --minute <M> --command <cmd> [--interval <secs>] [--working-dir <path>] [--dry-run] [--force]
 
 set -e
 
@@ -28,14 +27,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate required args
 if [[ -z "$TASK_ID" || -z "$COMMAND" ]]; then
   echo "Error: --task-id and --command are required"
-  echo "Usage: $0 --task-id <id> (--hour <H> --minute <M> | --interval <secs>) --command <cmd> [--working-dir <path>] [--dry-run]"
+  echo "Usage: $0 --task-id <id> (--hour <H> --minute <M> | --interval <secs>) --command <cmd> [--working-dir <path>] [--dry-run] [--force]"
   exit 1
 fi
 
-# Validate mutually exclusive scheduling
 if [[ -n "$INTERVAL" && (-n "$HOUR" || -n "$MINUTE") ]]; then
   echo "Error: --interval and --hour/--minute are mutually exclusive"
   exit 1
@@ -54,10 +51,8 @@ PLIST_FILE="$LAUNCHD_DIR/com.task-trigger.$TASK_ID.plist"
 LOG_FILE="$HOME/.task-trigger/logs/$TASK_ID.log"
 ERROR_LOG="$HOME/.task-trigger/logs/$TASK_ID.error.log"
 
-# Mejora 8: PATH limpio con solo directorios esenciales
 CLEAN_PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-# Build schedule section
 if [[ -n "$INTERVAL" ]]; then
   SCHEDULE_SECTION="  <key>StartInterval</key>
   <integer>$INTERVAL</integer>"
@@ -112,22 +107,15 @@ fi
 echo "$PLIST_CONTENT" > "$PLIST_FILE"
 
 echo "Launchd plist created: $PLIST_FILE"
+echo "Contents:"
+cat "$PLIST_FILE"
+echo ""
 
-# Unload previous version if loaded (prevents stale PID errors)
-LABEL="com.task-trigger.$TASK_ID"
-if launchctl list "$LABEL" &>/dev/null; then
-  launchctl remove "$LABEL" 2>/dev/null || launchctl unload "$PLIST_FILE" 2>/dev/null || true
-fi
-
-if [[ "$FORCE" == true ]]; then
-  launchctl load "$PLIST_FILE"
-  echo "Launchd job loaded for task: $TASK_ID"
-else
-  echo ""
+if [[ "$FORCE" != true ]]; then
   echo "Press Enter to load with launchctl or Ctrl+C to cancel..."
   read -r
-  launchctl load "$PLIST_FILE"
-  echo "Launchd job loaded successfully for task: $TASK_ID"
 fi
 
+launchctl load "$PLIST_FILE"
+echo "Launchd job loaded successfully for task: $TASK_ID"
 echo "To unload: launchctl unload $PLIST_FILE"

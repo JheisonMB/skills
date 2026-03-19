@@ -1,6 +1,6 @@
 #!/bin/bash
 # Add a task to crontab (Linux/WSL)
-# Usage: ./add-to-crontab.sh --task-id <id> --cron <expression> --command <command> [--dry-run]
+# Usage: ./add-to-crontab.sh --task-id <id> --cron <expression> --command <command> [--dry-run] [--force]
 
 set -e
 
@@ -21,20 +21,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate arguments
 if [[ -z "$TASK_ID" || -z "$CRON_EXPR" || -z "$COMMAND" ]]; then
   echo "Error: Missing required arguments"
-  echo "Usage: $0 --task-id <id> --cron <expression> --command <command>"
+  echo "Usage: $0 --task-id <id> --cron <expression> --command <command> [--dry-run] [--force]"
   exit 1
 fi
 
-# Create temporary crontab file
 TEMP_CRONTAB=$(mktemp)
-
-# Read current crontab or create empty
 crontab -l 2>/dev/null > "$TEMP_CRONTAB" || echo "" > "$TEMP_CRONTAB"
 
-# Add new entry
 echo "# task-trigger: $TASK_ID" >> "$TEMP_CRONTAB"
 echo "$CRON_EXPR $COMMAND" >> "$TEMP_CRONTAB"
 
@@ -54,10 +49,6 @@ if [[ "$FORCE" != true ]]; then
   read -r
 fi
 
-# Apply new crontab
 crontab "$TEMP_CRONTAB"
-
-# Cleanup
 rm -f "$TEMP_CRONTAB"
-
 echo "Crontab updated successfully for task: $TASK_ID"

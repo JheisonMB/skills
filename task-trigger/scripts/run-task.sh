@@ -14,6 +14,10 @@ fi
 
 TASKS_FILE="$HOME/.task-trigger/tasks.json"
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Error: python3 is required but not found in PATH"
+  exit 1
+fi
 if [[ ! -f "$TASKS_FILE" ]]; then
   echo "No tasks registered yet."
   exit 1

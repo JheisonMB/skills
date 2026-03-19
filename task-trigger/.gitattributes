@@ -1,0 +1,5 @@
+# Force LF line endings for all scripts — prevents CRLF breakage in WSL
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
