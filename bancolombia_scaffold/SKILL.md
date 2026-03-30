@@ -1,14 +1,15 @@
 ---
-name: scaffold-clean-architecture
+name: bancolombia_scaffold
 description: >
   Scaffold and manage Java Spring Boot projects using the Bancolombia Clean Architecture Gradle plugin
   (co.com.bancolombia.cleanArchitecture). Generates projects, models, use cases, driven adapters, and entry points
   following clean architecture patterns. Use this skill whenever the user mentions scaffold, clean architecture,
-  Bancolombia plugin, "gradle ca", "gradle gep", "gradle gda", "gradle guc", "gradle gm", generating a reactive
-  or imperative Java project structure, adding driven adapters (JPA, MongoDB, R2DBC, Redis, S3, DynamoDB, REST consumer,
-  SQS, Kafka, secrets), adding entry points (WebFlux, REST MVC, GraphQL, Kafka, SQS, RSocket, MCP server, A2A agent),
-  or generating models and use cases in a clean architecture project. Also activate when the user wants to create
-  a new microservice, add infrastructure modules, or asks about project structure with domain/infrastructure layers.
+  Bancolombia plugin, "gradle ca", "gradle gep", "gradle gda", "gradle guc", "gradle gm", "gradle vs", "gradle dm",
+  generating a reactive or imperative Java project structure, adding driven adapters (JPA, MongoDB, R2DBC, Redis, S3,
+  DynamoDB, REST consumer, SQS, Kafka, secrets), adding entry points (WebFlux, REST MVC, GraphQL, Kafka, SQS, RSocket,
+  MCP server, A2A agent), generating models and use cases, validating project structure, or deleting modules in a clean
+  architecture project. Also activate when the user wants to create a new microservice, add infrastructure modules,
+  or asks about project structure with domain/infrastructure layers.
 ---
 
 # Scaffold Clean Architecture
@@ -122,6 +123,39 @@ Creates infrastructure entry points. Read `references/entry-points.md` for the f
 ./gradlew gep --type=mcp
 ./gradlew gep --type=agent --name=my-agent
 ./gradlew gep --type=generic --name=MyEntryPoint
+```
+
+### Validate Structure (`validateStructure` | `vs`)
+
+Validates that project dependency rules aren't violated (Clean Architecture Dependency Rule: source code dependencies can only point inwards).
+
+```bash
+./gradlew validateStructure
+./gradlew vs
+```
+
+Validations performed:
+1. Model module: no dependencies at all
+2. UseCase module: dependency to Model module ONLY
+3. Infrastructure modules: allow external deps + Model/UseCase, but NOT AppService
+
+Whitelisting dependencies (e.g. for BOMs):
+```groovy
+// build.gradle
+cleanPlugin {
+    modelProps {
+        whitelistedDependencies = "my-bom, <dep2>, <depN..>"
+    }
+}
+```
+
+### Delete Module (`deleteModule` | `dm`)
+
+Deletes a sub project module.
+
+```bash
+./gradlew deleteModule --module=[name]
+./gradlew dm --module=[name]
 ```
 
 ## Workflow
