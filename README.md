@@ -27,11 +27,19 @@ Evaluador automático de pruebas técnicas de WebFlux para múltiples candidatos
 npx skills add https://github.com/jheisonmb/skills --skill webflux-test-reviewer
 ```
 
-### task-trigger
-Programación de tareas recurrentes usando scheduler nativo del SO (crontab/launchd) con scripts automatizados — update in-place, pause/resume, verificación de scheduler
+### ~~task-trigger~~ (⚠️ DEPRECATED)
+Reemplazado por [task-trigger-mcp](https://github.com/JheisonMB/task-trigger-mcp) — servidor MCP con las mismas capacidades de scheduling y file watching, sin scripts custom.
 
 ```bash
-npx skills add https://github.com/jheisonmb/skills --skill task-trigger
+# Ya no usar. Migrar al MCP server:
+# https://github.com/JheisonMB/task-trigger-mcp
+```
+
+### bancolombia_scaffold
+Scaffold y gestión de proyectos Java Spring Boot con el plugin Gradle de Clean Architecture de Bancolombia
+
+```bash
+npx skills add https://github.com/jheisonmb/skills --skill bancolombia_scaffold
 ```
 
 ---
