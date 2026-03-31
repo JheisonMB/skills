@@ -35,6 +35,13 @@ Reemplazado por [task-trigger-mcp](https://github.com/JheisonMB/task-trigger-mcp
 # https://github.com/JheisonMB/task-trigger-mcp
 ```
 
+### texforge
+CLI para compilar documentos LaTeX a PDF sin TeX Live, MiKTeX ni dependencias externas
+
+```bash
+npx skills add https://github.com/jheisonmb/skills --skill texforge
+```
+
 ### bancolombia_scaffold
 Scaffold y gestión de proyectos Java Spring Boot con el plugin Gradle de Clean Architecture de Bancolombia
 
