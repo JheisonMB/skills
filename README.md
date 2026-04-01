@@ -6,13 +6,6 @@ Catálogo de habilidades personalizadas para agentes de IA
 
 ## ✨ Habilidades
 
-### rust-idiomatic-patterns
-Decisiones idiomáticas de Rust — ownership, errores, iteradores, DRY, SoC, Fail-Fast, tests. Destilado de experiencia real, no el libro de Rust.
-
-```bash
-npx skills add https://github.com/jheisonmb/skills --skill rust-idiomatic-patterns
-```
-
 ### webflux-reactive-patterns
 Guía experta de programación reactiva en Java Spring WebFlux
 
