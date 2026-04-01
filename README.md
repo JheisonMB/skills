@@ -6,6 +6,13 @@ Catálogo de habilidades personalizadas para agentes de IA
 
 ## ✨ Habilidades
 
+### asreview-systematic-review
+Guía experta para usar ASReview en revisiones sistemáticas y aprendizaje activo — screening de literatura, configuración de modelos y flujos de trabajo.
+
+```bash
+npx skills add https://github.com/jheisonmb/skills --skill asreview-systematic-review
+```
+
 ### rust-idiomatic-patterns
 Decisiones idiomáticas de Rust — ownership, errores, iteradores, DRY, SoC, Fail-Fast, tests. Destilado de experiencia real, no el libro de Rust.
 
