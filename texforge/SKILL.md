@@ -10,7 +10,7 @@ description: >
 license: MIT
 metadata:
   author: jheison.martinez
-  version: "1.0"
+  version: "1.1"
   framework: OpenCode
   category: cli-tool
   last_updated: "2026-03-31"
@@ -18,35 +18,29 @@ metadata:
 
 # texforge CLI
 
-Self-contained LaTeX to PDF compiler. One binary, zero external dependencies. The agent writes `.tex`, texforge compiles.
+CLI para compilar LaTeX a PDF. Usa [tectonic](https://tectonic-typesetting.github.io/) como motor interno — no requiere TeX Live ni MiKTeX, pero tectonic sí se instala como dependencia.
 
----
-
-## Installation
+## Instalación
 
 ```bash
-# Quick install (installs texforge + tectonic)
+# Recomendado: instala texforge + tectonic en un paso
 curl -fsSL https://raw.githubusercontent.com/JheisonMB/texforge/main/install.sh | sh
 
-# Or via cargo
-cargo install texforge
+# Alternativa manual
 cargo install tectonic
+cargo install texforge
 ```
 
----
-
-## Commands
+## Comandos
 
 ### `texforge new <name>`
 
-Creates a new project from a template.
-
 ```bash
-texforge new mi-tesis                 # uses "general" template (default, embedded)
-texforge new mi-tesis -t apa-general  # uses a specific template
+texforge new mi-tesis                 # template "general" (embebido, funciona offline)
+texforge new mi-tesis -t apa-general  # template específico
 ```
 
-Generated structure:
+Estructura generada:
 ```
 mi-tesis/
 ├── project.toml
@@ -70,36 +64,28 @@ bibliografia = "bib/references.bib"
 
 ### `texforge build`
 
-Compiles to PDF. Run from the project directory.
-
 ```bash
 texforge build
 ```
 
-Reads `project.toml` → assembles document → compiles with tectonic → PDF. Errors shown cleanly with file, line, and suggestion — never raw tectonic logs.
+Compila `main.tex` → PDF. Los errores se muestran con archivo, línea y sugerencia — nunca logs crudos de tectonic.
 
 ### `texforge fmt [--check]`
 
-Formats `.tex` files (inspired by `rustfmt`).
-
 ```bash
-texforge fmt           # format in place
-texforge fmt --check   # check only, CI-friendly
+texforge fmt           # formatea en lugar
+texforge fmt --check   # solo verifica, útil en CI
 ```
-
-Normalizes: 2-space indentation inside environments, collapsed blank lines, aligned `\begin{}`/`\end{}` blocks.
 
 ### `texforge check`
 
-Static linter — validates without compiling.
+Linter estático — valida sin compilar. Detecta:
+- Archivos `\input` faltantes
+- Imágenes `\includegraphics` no encontradas
+- Claves `\cite` no definidas en el `.bib`
+- Pares `\ref`/`\label` rotos
+- Entornos sin cerrar
 
-```bash
-texforge check
-```
-
-Detects: missing `\input` files, missing `\includegraphics` images, undefined `\cite` keys, broken `\ref`/`\label` pairs, unclosed environments.
-
-Error format:
 ```
 ERROR [main.tex:47]
   \includegraphics{missing.png} — file not found
@@ -111,40 +97,37 @@ ERROR [main.tex:12]
 ### `texforge template`
 
 ```bash
-texforge template list                  # list installed templates
-texforge template add apa-general       # download from registry
-texforge template add <url>             # from GitHub or direct URL
+texforge template list
+texforge template add apa-general       # desde registry (requiere internet la primera vez)
+texforge template add <url>             # desde GitHub o URL directa
 texforge template remove apa-general
-texforge template validate apa-general  # check tectonic compatibility
+texforge template validate apa-general
 ```
 
-Templates are cached at `~/.texforge/templates/`.
+Templates disponibles:
 
-| Template | Description |
+| Template | Descripción |
 |---|---|
-| `general` | Generic article (default, embedded, works offline) |
-| `apa-general` | APA 7th edition report |
-| `apa-unisalle` | Universidad de La Salle thesis |
-| `ieee` | IEEE journal paper |
-| `letter` | Formal Spanish correspondence |
+| `general` | Artículo genérico (embebido, offline) |
+| `apa-general` | Reporte APA 7ma edición |
+| `apa-unisalle` | Tesis Universidad de La Salle |
+| `ieee` | Paper IEEE |
+| `letter` | Correspondencia formal en español |
 
----
-
-## Typical Workflow
+## Flujo típico
 
 ```bash
 texforge new mi-documento
 cd mi-documento
-# write content in main.tex / sections/
-texforge check    # catch errors first
-texforge fmt      # format
-texforge build    # compile to PDF
+# editar main.tex y sections/
+texforge check    # detectar errores antes de compilar
+texforge fmt      # formatear
+texforge build    # compilar a PDF
 ```
 
----
+## Si `texforge build` falla
 
-## Notes
-
-- If `texforge build` fails, run `texforge check` first — catches most issues without a full compile.
-- The `general` template is embedded in the binary and works offline.
-- Templates from the registry require internet on first download, then work offline.
+1. Correr `texforge check` primero — resuelve la mayoría de errores sin compilar
+2. Verificar que tectonic esté instalado: `tectonic --version`
+3. Si el error es de tectonic (paquete LaTeX faltante), tectonic lo descarga automáticamente en el primer build — verificar conexión a internet
+4. Para errores de sintaxis LaTeX, el output de `texforge build` indica archivo y línea exacta
