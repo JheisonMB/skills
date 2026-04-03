@@ -1,5 +1,13 @@
 # Changelog - texforge Skill
 
+## Version 1.4 (2026-04-03)
+
+### Changed
+- `texforge init` — now auto-detects mode: migrates if `.tex` with `\documentclass` found at root, otherwise launches new project wizard
+- `texforge build --watch` — live session timer, build counter, last result only (no log accumulation), colored output, default debounce reduced to 2s
+
+---
+
 ## Version 1.3 (2026-04-01)
 ### Added
 - `texforge clean` — eliminar build/

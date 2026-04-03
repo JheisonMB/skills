@@ -10,10 +10,10 @@ description: >
 license: MIT
 metadata:
   author: jheison.martinez
-  version: "1.3"
+  version: "1.4"
   framework: OpenCode
   category: cli-tool
-  last_updated: "2026-03-31"
+  last_updated: "2026-04-03"
 ---
 
 # texforge CLI
@@ -72,13 +72,18 @@ bibliografia = "bib/references.bib"
 
 ### `texforge init`
 
-Migra un proyecto LaTeX existente a texforge. Detecta automáticamente el entry point (archivo con `\documentclass`) y el `.bib`.
+Wizard interactivo. Si detecta un `.tex` con `\documentclass`, ofrece migrar el proyecto existente. Si no, guía la creación de uno nuevo pidiendo nombre y template.
 
 ```bash
-cd mi-proyecto-existente/
+# En un directorio vacío — crea proyecto nuevo
+cd mis-documentos/
+texforge init
+
+# En un proyecto LaTeX existente — migra
+cd mi-tesis-existente/
 texforge init
 # Detectado: main.tex, refs.bib
-# ✅ project.toml generado
+# Pide titulo y autor, genera project.toml
 ```
 
 Después de `init`, todos los comandos (`build`, `fmt`, `check`) funcionan normalmente.
