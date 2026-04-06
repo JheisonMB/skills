@@ -1,8 +1,10 @@
 ---
-name: developer
+name: code-design
 description: >
-  Production-grade coding — design principles, pattern selection, clean code.
-  Use when writing, refactoring, reviewing, or designing code in any language.
+  Production-grade coding — SOLID, design patterns, clean code principles,
+  refactoring, code quality. Use when writing, reviewing, or designing code
+  in any language. Covers pattern selection, guard clauses, naming conventions,
+  and architecture decisions.
 license: MIT
 metadata:
   author: jheison.martinez
@@ -11,7 +13,7 @@ metadata:
   last_updated: "2026-04-06"
 ---
 
-# Developer: Production-Grade Coding
+# Code Design: Production-Grade Coding
 
 Write code as if it ships to production today. Every function, class, and module should be clean, intentional, and maintainable.
 

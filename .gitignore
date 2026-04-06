@@ -28,3 +28,16 @@ package-lock.json
 
 # OS files
 Thumbs.db
+
+# AI coding agents
+.kiro/
+.cursor/
+.windsurf/
+.claude/
+.continue/
+.copilot/
+.kilocode/
+.zencoder/
+.qwen/
+.agents/
+skills-lock.json

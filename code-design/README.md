@@ -1,4 +1,4 @@
-# Developer Skill
+# Code Design Skill
 
 Production-grade coding behavior for AI agents — any language, any framework. Complements [mindful-precision](../mindful-precision) by focusing specifically on code quality and design decisions.
 
@@ -20,13 +20,13 @@ This skill makes the agent:
 
 ```mermaid
 radar-beta
-    title Agent Coding: Base vs Developer Skill
+    title Agent Coding: Base vs Code Design Skill
     axis Principles["Design Principles"]
     axis Patterns["Pattern Selection"]
     axis Consistency["Codebase Consistency"]
     axis Clarity["Zero Uncertainty"]
     axis Quality["Production Quality"]
-    curve Developer_Agent {8, 8, 9, 8, 8}
+    curve Code_Design_Agent {8, 8, 9, 8, 8}
     curve Base_Agent {4, 3, 3, 4, 5}
 ```
 
@@ -65,7 +65,7 @@ This skill handles **code quality and design**. [mindful-precision](../mindful-p
 ## Installation
 
 ```bash
-npx skills add https://github.com/jheisonmb/skills --skill developer
+npx skills add https://github.com/jheisonmb/skills --skill code-design
 ```
 
 ## License

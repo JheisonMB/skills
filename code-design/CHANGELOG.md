@@ -1,4 +1,4 @@
-# Changelog - Developer Skill
+# Changelog - Code Design Skill
 
 ## Version 1.0 (2026-04-06)
 
