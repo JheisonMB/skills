@@ -48,6 +48,13 @@ CLI para compilar documentos LaTeX a PDF sin TeX Live, MiKTeX ni dependencias ex
 npx skills add https://github.com/jheisonmb/skills --skill texforge
 ```
 
+### developer
+Coding production-grade — principios de diseño priorizados, patrones por decisión, código limpio. Para cualquier lenguaje.
+
+```bash
+npx skills add https://github.com/jheisonmb/skills --skill developer
+```
+
 ### bancolombia_scaffold
 Scaffold y gestión de proyectos Java Spring Boot con el plugin Gradle de Clean Architecture de Bancolombia
 
