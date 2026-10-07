@@ -159,14 +159,6 @@ public class UserAccountService {
     }
     
     /**
-     * Saves account to repository.
-     * Demonstrates: simple delegation to repository.
-     */
-    private Mono<Account> saveAccount(Account account) {
-        return accountRepository.save(account);
-    }
-    
-    /**
      * Builds response DTO (synchronous operation).
      * Demonstrates: helper method for object construction, used with map().
      */
