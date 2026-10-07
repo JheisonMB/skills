@@ -165,7 +165,17 @@ Use this decision tree to select the right operator:
 
 ## Error Handling Philosophy
 
-All errors must be lazy to maintain reactive semantics. Never use `throw` directly in reactive chains. Always wrap errors in `Mono.defer()` to ensure they're only evaluated when subscribed.
+Never use `throw` directly in reactive chains; use `Mono.error()` instead. When the error is constructed in an eager context (e.g. `Optional.orElse()`, a ternary expression, or any code outside a reactive operator), wrap it in `Mono.defer()` so it is only evaluated when subscribed. Operators such as `switchIfEmpty()`, `flatMap()` and `onErrorResume()` already provide lazy semantics, so `Mono.defer()` is optional there (harmless, and this skill's examples keep it for consistency).
+
+**When `Mono.defer()` is required:**
+- `Optional.orElse()` and similar eager evaluation contexts
+- Direct assignment to variables before subscription
+- Error construction with side effects
+
+**When `Mono.defer()` is optional (the operator provides laziness):**
+- `switchIfEmpty(Mono.error(...))`
+- `flatMap(x -> Mono.error(...))`
+- `onErrorResume(e -> Mono.error(...))`
 
 **Why lazy errors matter:**
 - Preserves fail-fast behavior in reactive chains
