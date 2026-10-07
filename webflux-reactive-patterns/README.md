@@ -23,7 +23,7 @@ npx skills add <your-github-username>/webflux-reactive-patterns
 ## What's Included
 
 - **SKILL.md** - Main skill file with overview and quick reference
-- **references/BEFORE_CODING.md** - Pre-implementation analysis workflow
+- **references/BEFORE_CODING.md** - Analysis workflow
 - **references/REACTIVE_PATTERNS.md** - Comprehensive reactive patterns and anti-patterns
 - **references/BEST_PRACTICES.md** - Code style and organizational best practices
 - **references/TROUBLESHOOTING.md** - Common issues, debugging techniques, and solutions
@@ -31,6 +31,7 @@ npx skills add <your-github-username>/webflux-reactive-patterns
 
 ## Key Features
 
+- ✅ **Refactor Philosophy** — Functional Checkpoint Goals (Define-Execute-Verify-Commit)
 - ✅ Pure reactive flow patterns (no imperative constructs)
 - ✅ Lazy error handling with `Mono.defer()`
 - ✅ Proper use of `Optional`, `filter()`, `switchIfEmpty()`
@@ -121,12 +122,12 @@ MIT License - See LICENSE file for details
 
 ## Metadata
 
-- **Version:** 1.1
+- **Version:** 1.2
 - **Framework:** Spring WebFlux
 - **Language:** Java
 - **Category:** Reactive Programming
 - **Author:** jheison.martinez
-- **Last Updated:** 2026-03-12
+- **Last Updated:** 2026-05-05
 
 ## Validation
 

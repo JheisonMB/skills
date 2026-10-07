@@ -27,16 +27,32 @@ description: >
 license: MIT
 metadata:
   author: jheison.martinez
-  version: "1.1"
+  version: "1.2"
   framework: Spring WebFlux
   language: Java
   category: reactive-programming
-  last_updated: "2026-03-12"
+  last_updated: "2026-05-05"
 ---
 
 # WebFlux Reactive Patterns
 
 This skill provides comprehensive guidance for writing idiomatic, production-ready reactive code with Spring WebFlux in Java. It enforces pure reactive programming patterns and eliminates common anti-patterns that break reactive streams.
+
+---
+
+## Refactor Philosophy: Functional Checkpoint Goals 🔵 UPDATED
+
+Reactive refactoring often involves deep structural changes across multiple layers. Focus on reaching functional, verified milestones.
+
+1.  **Define the Functional Checkpoint**: Identify a logical unit of value (e.g., "Decouple Account processing logic into a standalone Reactive Component").
+2.  **Multi-File Execution**: Modify all necessary files (Services, Repositories, DTOs) to achieve the goal. Reactive flows often require updating the entire call chain at once.
+3.  **Verification and Integrity**: The code MUST compile and pass all tests. Ensure no `block()` calls were accidentally introduced and reactive context is preserved.
+4.  **Atomic Milestone Commit**: Commit the entire logical change as one unit. This ensures the repository always contains a working version of the application.
+5.  **Re-evaluate**: Once the checkpoint is verified, plan the next logical move.
+
+If a change breaks the reactive chain for too long, revert and break the goal into smaller, self-contained functional milestones.
+
+---
 
 ## When to Use This Skill
 

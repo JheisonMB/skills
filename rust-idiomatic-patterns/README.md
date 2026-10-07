@@ -18,6 +18,7 @@ npx skills add https://github.com/jheisonmb/skills --skill rust-idiomatic-patter
 
 ## Key Features
 
+- ✅ **Refactor Philosophy** — Functional Checkpoint Goals (Define-Execute-Verify-Commit)
 - ✅ Tablas de decisión para ownership/borrowing
 - ✅ Fail Fast — validar antes de trabajar
 - ✅ SoC — separar locate/install/orchestrate
@@ -51,8 +52,8 @@ MIT — See LICENSE file for details
 
 ## Metadata
 
-- **Version:** 1.0
+- **Version:** 1.2
 - **Language:** Rust
 - **Category:** Language Patterns
 - **Author:** jheison.martinez
-- **Last Updated:** 2026-04-01
+- **Last Updated:** 2026-05-05
