@@ -1,89 +1,85 @@
 ---
 name: rust-idiomatic-patterns
 description: >
-  Decisiones idiomáticas de Rust para escribir código limpio, seguro y eficiente.
-  Destilado de experiencia real en proyectos de producción — no el libro de Rust,
-  sino las reglas que realmente importan en el día a día.
+  Idiomatic Rust guide for writing, reviewing, and refactoring clean, safe, and efficient code. Focuses on ownership/borrowing, Result/Option, iterators, APIs, modules, DRY, SoC, fail-fast, and clippy.
 
-  Activar cuando:
-  - Escribiendo código Rust nuevo (funciones, structs, enums, módulos)
-  - Revisando o refactorizando código Rust existente
-  - Decidiendo entre &T vs String, clone vs borrow, dyn vs impl
-  - Manejando errores con Result/Option
-  - Diseñando APIs públicas o internas
-  - Aplicando DRY, YAGNI, SoC, Fail-Fast en Rust
-  - Escribiendo tests unitarios
-  - Resolviendo warnings de clippy
-
-  ACTIVAR cuando el usuario menciona:
-  "Rust", "cargo", "ownership", "borrow", "lifetime", "Result", "Option",
-  "unwrap", "clone", "trait", "impl", "enum", "struct", "clippy", "anyhow",
-  "thiserror", "iterator", "flatMap", "collect", "Vec", "HashMap",
-  "refactor Rust", "idiomatic", "best practice Rust", "code review Rust",
-  "DRY Rust", "SoC Rust", "Fail Fast Rust".
-
-  NO USAR para: Java, Python, JavaScript, o cualquier lenguaje que no sea Rust.
+  Activate when working with Rust, cargo, ownership, borrow, lifetimes, Result, Option, traits, enums, structs, iterators, anyhow, thiserror, clippy, or a Rust review/refactor.
+  Do not use for languages other than Rust.
 license: MIT
 metadata:
   author: jheison.martinez
-  version: "1.0"
+  version: "1.2"
   language: Rust
   category: language-patterns
-  last_updated: "2026-04-01"
+  last_updated: "2026-05-05"
 ---
 
 # Rust Idiomatic Patterns
 
-Reglas accionables extraídas de experiencia real. Sin teoría — solo decisiones.
+Actionable rules extracted from real experience. No theory - only decisions.
+
+---
+
+## Refactor Philosophy: Functional Checkpoint Goals 🔵 UPDATED
+
+Refactoring is driven by **Logical Checkpoints**. Each commit must represent a complete, functional milestone in the evolution of the codebase.
+
+1.  **Define the Checkpoint**: Identify a logical functional unit (e.g., "Extract Domain Logic from main.rs to domain/ module").
+2.  **Execute Goal**: Modify all necessary files to achieve the goal. This often involves creating new files and updating multiple callers simultaneously.
+3.  **Functional Integrity**: Ensure the code is functionally correct. The project MUST compile and pass `cargo clippy --all-targets -- -D warnings` and all relevant tests.
+4.  **Atomic Milestone Commit**: Make a single commit for the entire logical change. Do not split a single functional goal into multiple broken commits.
+5.  **Re-evaluate**: Once the checkpoint is reached and verified, define the next logical goal.
+
+If a goal becomes too complex (taking too long to reach a passing state), revert and break it into two smaller **functional** checkpoints.
 
 ---
 
 ## Ownership & Borrowing
 
-**Regla de oro: nunca `.clone()` sin que el compilador lo exija.**
+**Golden rule: never call `.clone()` unless the compiler forces it.**
 
-| Situación | Usar |
+| Situation | Use |
 |---|---|
-| Parámetro que solo lees | `&T`, `&str`, `&[T]` |
-| Parámetro que necesitas poseer | `T`, `String`, `Vec<T>` |
-| Retorno que produces | `String`, `Vec<T>` |
-| Retorno que lees de `self` | `&T`, `&str` |
-| Ownership ambiguo | `Cow<'_, T>` |
-| Tipo ≤ 24 bytes + Copy | pasar por valor |
+| Parameter you only read | `&T`, `&str`, `&[T]` |
+| Parameter you need to own | `T`, `String`, `Vec<T>` |
+| Return value you produce | `String`, `Vec<T>` |
+| Return value you read from `self` | `&T`, `&str` |
+| Ambiguous ownership | `Cow<', T>` |
+| Type <= 24 bytes + Copy | pass by value |
 
-Si clonás, preguntate si el diseño está mal.
+If you clone, ask whether the design is wrong.
 
 ---
 
-## Errores
+## Errors
 
 ```rust
-// Librería — enum tipado con thiserror
+// Library - typed enum with thiserror
 #[derive(thiserror::Error, Debug)]
 enum AppError {
     #[error("not found: {0}")]
     NotFound(String),
 }
 
-// Binario/CLI — anyhow con contexto
+// Binary/CLI - anyhow with context
 fn execute() -> anyhow::Result<()> {
     do_thing().context("Failed to do thing")?;
     Ok(())
 }
 ```
 
-- `unwrap()` / `expect()` solo en tests
-- `?` sobre `match` para propagar
-- `.with_context(|| format!(...))` cuando el mensaje necesita datos dinámicos
-- **Fail Fast**: validar entradas al inicio, antes de hacer trabajo costoso
+- Use `unwrap()` / `expect()` only in tests
+- Prefer `?` over `match` for propagation
+- Use `.with_context(|| format!(...))` when the message needs dynamic data
+- **Fail Fast**: validate inputs up front, before doing expensive work
 
 ```rust
-// ✅ Fail Fast — validar primero
+// ✅ Fail Fast - validate first
 fn render_env(content: &str, pos: &str) -> Result<String> {
     if !["H", "t", "b", "h", "p"].contains(&pos) {
-        anyhow::bail!("Invalid pos='{}' — valid: H, t, b, h, p", pos);
+        anyhow::bail!("Invalid pos='{}' - valid: H, t, b, h, p", pos);
     }
-    // trabajo costoso después
+    // expensive work later
     let png = render_to_png(content)?;
     ...
 }
@@ -91,51 +87,51 @@ fn render_env(content: &str, pos: &str) -> Result<String> {
 
 ---
 
-## Iteradores
+## Iterators
 
 ```rust
-// ✅ encadenar directamente
+// ✅ chain directly
 let total: u32 = items.iter()
     .filter(|x| x.active)
     .map(|x| x.value)
     .sum();
 
-// ❌ collect() intermedio innecesario
+// ❌ unnecessary intermediate collect()
 let filtered: Vec<_> = items.iter().filter(...).collect();
 let total: u32 = filtered.iter().map(...).sum();
 ```
 
-- `.iter()` para Copy types, `.into_iter()` cuando necesitas ownership
-- `filter_map` > `filter` + `map` separados
-- `.find(|p| p.exists())` > loop manual con `break`
+- Use `.iter()` for Copy types, `.into_iter()` when you need ownership
+- `filter_map` > separate `filter` + `map`
+- `.find(|p| p.exists())` > manual loop with `break`
 
 ---
 
 ## Structs & Enums
 
 ```rust
-// let...else para fail-fast sin anidamiento
+// let...else for fail-fast without nesting
 let Some(value) = maybe_value else { return; };
 
-// Enum sobre bool flags cuando hay más de 2 estados
+// Prefer enums over bool flags when there are more than 2 states
 enum Status { Active, Inactive, Pending }  // ✅
-struct Item { is_active: bool }             // ❌
+struct Item { is_active: bool }            // ❌
 
-// Box<T> para variantes grandes
+// Use Box<T> for large variants
 enum Event {
     Small(u32),
-    Large(Box<BigData>),  // evita large_enum_variant warning
+    Large(Box<BigData>),  // avoids large_enum_variant warning
 }
 ```
 
 ---
 
-## Funciones & SoC
+## Functions & SoC
 
-Una función = una responsabilidad. Si el nombre necesita "y" o "or", dividir.
+One function = one responsibility. If the name needs "and" or "or", split it.
 
 ```rust
-// ✅ separado — cada función hace una cosa
+// ✅ separated - each function does one thing
 fn locate_binary() -> Option<PathBuf> { ... }
 fn install_binary(dest: &Path) -> Result<()> { ... }
 fn find_or_install() -> Result<PathBuf> {
@@ -145,18 +141,18 @@ fn find_or_install() -> Result<PathBuf> {
     Ok(dest)
 }
 
-// ❌ mezclado — busca + instala + reporta + decide
+// ❌ mixed - find + install + report + decide
 fn find_tectonic() -> Result<PathBuf> { ... }
 ```
 
 ---
 
-## DRY — Unificar con genéricos y closures
+## DRY - Unify with Generics and Closures
 
-Cuando dos funciones tienen el mismo esqueleto con lógica diferente en el medio:
+When two functions share the same skeleton with different logic in the middle:
 
 ```rust
-// ❌ duplicado
+// ❌ duplicated
 fn detect_entry(root: &Path) -> Option<String> {
     for entry in WalkDir::new(root).max_depth(2) { ... }
 }
@@ -164,7 +160,7 @@ fn detect_bib(root: &Path) -> Option<String> {
     for entry in WalkDir::new(root).max_depth(3) { ... }
 }
 
-// ✅ unificado con closure
+// ✅ unified with a closure
 fn find_file_by(root: &Path, depth: usize, pred: impl Fn(&Path) -> bool) -> Option<String> {
     WalkDir::new(root).max_depth(depth).into_iter()
         .filter_map(|e| e.ok())
@@ -183,29 +179,29 @@ fn detect_entry(root: &Path) -> Option<String> {
 
 ---
 
-## Visibilidad & Módulos
+## Visibility & Modules
 
-- `pub(crate)` para exponer entre módulos internos sin API pública
-- Mover utilidades compartidas a `utils/mod.rs` — no duplicar entre módulos
-- Si dos módulos tienen la misma función privada, pertenece a `utils`
+- Use `pub(crate)` to expose items between internal modules without making them public API
+- Move shared utilities to `utils/mod.rs` - do not duplicate them across modules
+- If two modules have the same private function, it belongs in `utils`
 
 ```rust
-// ❌ resolve_tex_path en linter/mod.rs Y resolve_tex en diagrams/mod.rs
-// ✅ resolve_tex_path en utils/mod.rs, importada donde se necesite
+// ❌ resolve_tex_path in linter/mod.rs AND resolve_tex in diagrams/mod.rs
+// ✅ resolve_tex_path in utils/mod.rs, imported where needed
 ```
 
 ---
 
-## cfg sin unreachable_code
+## cfg Without unreachable_code
 
 ```rust
-// ✅ — sin allow(unreachable_code)
+// ✅ - without allow(unreachable_code)
 #[cfg(unix)]
 fn which_cmd() -> &'static str { "which" }
 #[cfg(not(unix))]
 fn which_cmd() -> &'static str { "where" }
 
-// ✅ — para plataformas no soportadas
+// ✅ - for unsupported platforms
 #[cfg(not(any(
     all(target_os = "linux", target_arch = "x86_64"),
     all(target_os = "macos", target_arch = "aarch64"),
@@ -221,13 +217,13 @@ fn current_target() -> Result<&'static str> {
 ## Tests
 
 ```rust
-// Nombre: qué_hace_cuando_condición
+// Name: what_it_does_when_condition
 #[test]
 fn validate_name_returns_error_when_empty() { ... }
 
-// Un assert por test cuando sea posible
-// tempfile::TempDir para tests con filesystem
-// No mockear lo que podés usar real
+// One assert per test when possible
+// tempfile::TempDir for filesystem tests
+// Do not mock what you can test for real
 #[test]
 fn lint_detects_missing_includegraphics() {
     let dir = TempDir::new().unwrap();
@@ -239,29 +235,29 @@ fn lint_detects_missing_includegraphics() {
 
 ---
 
-## Clippy — Correr siempre
+## Clippy - Always Run
 
 ```bash
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
 
-| Lint | Detecta |
+| Lint | Detects |
 |---|---|
-| `redundant_clone` | `.clone()` innecesario |
-| `needless_pass_by_value` | parámetro que debería ser `&T` |
-| `large_enum_variant` | variante que debería ser `Box<T>` |
-| `manual_let_else` | `match` que debería ser `let...else` |
-| `doc_markdown` | backticks faltantes en doc comments |
+| `redundant_clone` | unnecessary `.clone()` |
+| `needless_pass_by_value` | parameter that should be `&T` |
+| `large_enum_variant` | variant that should be `Box<T>` |
+| `manual_let_else` | `match` that should be `let...else` |
+| `doc_markdown` | missing backticks in doc comments |
 
 ---
 
-## Red Flags — Nunca en producción
+## Red Flags - Never in Production
 
-- `unwrap()` fuera de tests
-- `.clone()` en loops
-- `collect()` intermedio sin necesidad
-- Función que hace más de una cosa
-- Duplicar lógica entre módulos en lugar de mover a `utils`
-- `#[allow(...)]` sin comentario explicando por qué
-- `which` hardcodeado en lugar de `#[cfg(unix)]`
+- `unwrap()` outside tests
+- `.clone()` in loops
+- intermediate `collect()` without need
+- function that does more than one thing
+- duplicating logic across modules instead of moving it to `utils`
+- `#[allow(...)]` without a comment explaining why
+- hardcoded `which` instead of `#[cfg(unix)]`

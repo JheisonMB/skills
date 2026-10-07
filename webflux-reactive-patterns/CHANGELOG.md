@@ -1,5 +1,10 @@
 # Changelog - WebFlux Reactive Patterns Skill
 
+## Version 1.2 (2026-05-05)
+
+### Updated
+- **Refactor Philosophy: Functional Checkpoint Goals** — Added a milestone-based refactor workflow, focusing on logical functional units and atomic commits for complex reactive transformations.
+
 ## Version 1.1 (2026-03-12)
 
 ### Mejoras Principales
@@ -72,11 +77,3 @@ Nuevos patrones demostrados:
 - Helper method extraction
 - Code organization best practices
 - Pre-implementation analysis workflow
-
-### Archivos Originales
-- SKILL.md
-- references/BEFORE_CODING.md
-- references/REACTIVE_PATTERNS.md
-- references/BEST_PRACTICES.md
-- assets/reactive-service-example.java
-- README.md
